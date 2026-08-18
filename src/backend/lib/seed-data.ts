@@ -49,6 +49,8 @@ const p = (
   image,
   imageUrl: imageFor(categoryId),
   description: "",
+  gallery: "", // photos supplémentaires : tableau JSON texte ("" = aucune)
+  colors: "", // couleurs proposées : tableau JSON texte ("" = aucune)
   oldPrice: null,
   stock: 25,
   rating: 4,
@@ -68,6 +70,10 @@ export const PRODUCTS: Product[] = [
     rating: 5,
     isFeatured: true,
     stock: 18,
+    // 📸 Exemple de galerie photos + 🎨 couleurs (modifiables dans le Dashboard)
+    gallery: '["/images/products/chemise-polo-2.jpg","/images/products/chemise-polo-3.jpg"]',
+    colors:
+      '[{"name":"Blanc","hex":"#f8fafc"},{"name":"Bleu ciel","hex":"#7dd3fc"},{"name":"Noir","hex":"#111827"}]',
   }),
   p(2, "polo-homme-coton", "Polo homme 100% coton", 6500, 3, "⛳", {
     description: "Polo piqué respirant, col boutonné. Disponible en plusieurs coloris.",
@@ -141,6 +147,9 @@ export const PRODUCTS: Product[] = [
     oldPrice: null,
     rating: 5,
     isFeatured: true,
+    gallery: '["/images/products/sac-a-main-2.jpg"]',
+    colors:
+      '[{"name":"Noir","hex":"#111827"},{"name":"Caramel","hex":"#b45309"},{"name":"Rouge","hex":"#dc2626"}]',
   }),
   p(8, "sac-bandouliere-femme", "Sac bandoulière femme", 9500, 7, "👝", {
     description: "Petit sac pratique et léger, idéal pour les sorties.",
@@ -219,6 +228,7 @@ export const PRODUCTS: Product[] = [
     description: "Mocassins en cuir véritable, cousus main.",
     rating: 5,
     isFeatured: true,
+    colors: '[{"name":"Noir","hex":"#111827"},{"name":"Marron","hex":"#78350f"}]',
   }),
 
   // ══════════════════════════════════════════════════════════════════

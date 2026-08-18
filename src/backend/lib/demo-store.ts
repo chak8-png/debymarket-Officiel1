@@ -25,7 +25,13 @@ export interface DemoOrder {  id: number;
   deliveryFee: number;
   total: number;
   createdAt: string; // ISO
-  items: { productId: number; name: string; quantity: number; unitPrice: number }[];
+  items: {
+    productId: number;
+    name: string;
+    quantity: number;
+    unitPrice: number;
+    variant?: string | null; // couleur choisie (null/absent = aucune)
+  }[];
 }
 
 interface DemoStore {

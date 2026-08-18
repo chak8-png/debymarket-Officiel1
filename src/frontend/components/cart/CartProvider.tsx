@@ -18,6 +18,8 @@ export interface CartItem {
   oldPrice: number | null;
   image: string;
   imageUrl?: string | null;
+  /** Couleur choisie sur la fiche produit (null = non précisée). */
+  color?: string | null;
   quantity: number;
 }
 
@@ -31,6 +33,10 @@ export interface AddableProduct {
   imageUrl?: string | null;
 }
 
+/** Clé unique d'une ligne panier : même produit mais couleurs différentes = 2 lignes. */
+export const itemKey = (i: Pick<CartItem, "id" | "color">): string =>
+  `${i.id}|${i.color ?? ""}`;
+
 interface CartContextValue {
   items: CartItem[];
   count: number;
@@ -38,9 +44,9 @@ interface CartContextValue {
   deliveryFee: number;
   total: number;
   isOpen: boolean;
-  addItem: (product: AddableProduct, quantity?: number) => void;
-  removeItem: (id: number) => void;
-  setQuantity: (id: number, quantity: number) => void;
+  addItem: (product: AddableProduct, quantity?: number, color?: string | null) => void;
+  removeItem: (key: string) => void;
+  setQuantity: (key: string, quantity: number) => void;
   clear: () => void;
   openCart: () => void;
   closeCart: () => void;
@@ -72,17 +78,18 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }, [items, hydrated]);
 
   const value = useMemo<CartContextValue>(() => {
-    const addItem: CartContextValue["addItem"] = (product, quantity = 1) =>
+    const addItem: CartContextValue["addItem"] = (product, quantity = 1, color = null) =>
       setItems((prev) => {
-        const existing = prev.find((i) => i.id === product.id);
+        const key = `${product.id}|${color ?? ""}`;
+        const existing = prev.find((i) => itemKey(i) === key);
         if (existing) {
           return prev.map((i) =>
-            i.id === product.id
+            itemKey(i) === key
               ? { ...i, quantity: Math.min(MAX_QTY, i.quantity + quantity) }
               : i
           );
         }
-        return [...prev, { ...product, quantity }];
+        return [...prev, { ...product, color, quantity }];
       });
 
     const subtotal = items.reduce((s, i) => s + i.price * i.quantity, 0);
@@ -96,13 +103,15 @@ export function CartProvider({ children }: { children: ReactNode }) {
       total: subtotal + deliveryFee,
       isOpen,
       addItem,
-      removeItem: (id) => setItems((prev) => prev.filter((i) => i.id !== id)),
-      setQuantity: (id, quantity) =>
+      removeItem: (key) => setItems((prev) => prev.filter((i) => itemKey(i) !== key)),
+      setQuantity: (key, quantity) =>
         setItems((prev) =>
           quantity <= 0
-            ? prev.filter((i) => i.id !== id)
+            ? prev.filter((i) => itemKey(i) !== key)
             : prev.map((i) =>
-                i.id === id ? { ...i, quantity: Math.min(MAX_QTY, quantity) } : i
+                itemKey(i) === key
+                  ? { ...i, quantity: Math.min(MAX_QTY, quantity) }
+                  : i
               )
         ),
       clear: () => setItems([]),

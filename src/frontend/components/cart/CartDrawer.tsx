@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCart } from "./CartProvider";
+import { useCart, itemKey } from "./CartProvider";
 import { formatXOF } from "@/backend/lib/format";
 
 export default function CartDrawer() {
@@ -69,7 +69,7 @@ export default function CartDrawer() {
           ) : (
             <ul className="divide-y">
               {items.map((item) => (
-                <li key={item.id} className="flex gap-3 py-4">
+                <li key={itemKey(item)} className="flex gap-3 py-4">
                   <Link
                     href={`/products/${item.slug}`}
                     onClick={closeCart}
@@ -94,13 +94,18 @@ export default function CartDrawer() {
                     >
                       {item.name}
                     </Link>
+                    {item.color && (
+                      <p className="mt-0.5 text-xs text-gray-500">
+                        🎨 Couleur : <span className="font-semibold">{item.color}</span>
+                      </p>
+                    )}
                     <p className="mt-0.5 text-sm font-bold text-brand-600">
                       {formatXOF(item.price)}
                     </p>
                     <div className="mt-2 flex items-center justify-between">
                       <div className="flex items-center rounded-lg border">
                         <button
-                          onClick={() => setQuantity(item.id, item.quantity - 1)}
+                          onClick={() => setQuantity(itemKey(item), item.quantity - 1)}
                           className="px-2.5 py-1 text-gray-600 hover:bg-gray-50"
                           aria-label="Diminuer"
                         >
@@ -110,7 +115,7 @@ export default function CartDrawer() {
                           {item.quantity}
                         </span>
                         <button
-                          onClick={() => setQuantity(item.id, item.quantity + 1)}
+                          onClick={() => setQuantity(itemKey(item), item.quantity + 1)}
                           className="px-2.5 py-1 text-gray-600 hover:bg-gray-50"
                           aria-label="Augmenter"
                         >
@@ -118,7 +123,7 @@ export default function CartDrawer() {
                         </button>
                       </div>
                       <button
-                        onClick={() => removeItem(item.id)}
+                        onClick={() => removeItem(itemKey(item))}
                         className="text-xs text-red-500 hover:underline"
                       >
                         Retirer

@@ -124,8 +124,13 @@ export default function Footer() {
       </div>
 
       <div className="border-t border-white/10 px-4 py-6 text-center text-xs text-ink-500">
-        © 2026 Debymarket — Abidjan, Côte d&apos;Ivoire · Livraison en{" "}
-        {DELIVERY_TIME} · Paiement à la livraison
+        <p className="font-semibold text-ink-400">
+          © 2026 Debymarket — Tous droits réservés.
+        </p>
+        <p className="mt-1">
+          Abidjan, Côte d&apos;Ivoire · Livraison en {DELIVERY_TIME} · Paiement
+          à la livraison
+        </p>
       </div>
     </footer>
   );

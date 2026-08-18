@@ -7,15 +7,18 @@ import { trackEvent } from "../analytics/track";
 export default function AddToCart({
   product,
   withQuantity = false,
+  color = null,
 }: {
   product: AddableProduct;
   withQuantity?: boolean;
+  /** Couleur sélectionnée sur la fiche produit (transmise à la commande). */
+  color?: string | null;
 }) {
   const { addItem, openCart } = useCart();
   const [quantity, setQuantity] = useState(1);
 
   const add = (qty: number) => {
-    addItem(product, qty);
+    addItem(product, qty, color);
     trackEvent("add_to_cart", { productId: product.id, quantity: qty });
     openCart();
   };

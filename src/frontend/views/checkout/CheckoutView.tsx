@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState, type FormEvent } from "react";
-import { useCart } from "@/frontend/components/cart/CartProvider";
+import { useCart, itemKey } from "@/frontend/components/cart/CartProvider";
 import { formatXOF } from "@/backend/lib/format";
 import { DELIVERY_TIME, DELIVERY_AREA } from "@/backend/lib/constants";
 import { trackEvent } from "@/frontend/components/analytics/track";
@@ -37,7 +37,7 @@ export default function CheckoutView() {
           city,
           address,
           website, // pot de miel anti-robots (vide chez un humain)
-          items: items.map((i) => ({ productId: i.id, quantity: i.quantity })),
+          items: items.map((i) => ({ productId: i.id, quantity: i.quantity, color: i.color ?? undefined })),
         }),
       });
       const data = (await res.json()) as
@@ -263,7 +263,7 @@ export default function CheckoutView() {
           <h2 className="font-display text-lg font-semibold">🧾 Récapitulatif</h2>
           <ul className="mt-4 space-y-3">
             {items.map((item) => (
-              <li key={item.id} className="flex items-center gap-3 text-sm">
+              <li key={itemKey(item)} className="flex items-center gap-3 text-sm">
                 <span className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-sand text-2xl">
                   {item.imageUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
@@ -277,11 +277,18 @@ export default function CheckoutView() {
                   )}
                 </span>
                 <div className="flex-1">
-                  <p className="line-clamp-1 font-medium">{item.name}</p>
+                  <p className="line-clamp-1 font-medium">
+                    {item.name}
+                    {item.color && (
+                      <span className="ml-1.5 text-xs font-normal text-ink-400">
+                        · {item.color}
+                      </span>
+                    )}
+                  </p>
                   <div className="mt-0.5 flex items-center gap-2">
                     <button
                       type="button"
-                      onClick={() => setQuantity(item.id, item.quantity - 1)}
+                      onClick={() => setQuantity(itemKey(item), item.quantity - 1)}
                       className="rounded border border-ink-200 px-1.5 text-xs"
                     >
                       −
@@ -289,14 +296,14 @@ export default function CheckoutView() {
                     <span className="text-xs font-semibold">{item.quantity}</span>
                     <button
                       type="button"
-                      onClick={() => setQuantity(item.id, item.quantity + 1)}
+                      onClick={() => setQuantity(itemKey(item), item.quantity + 1)}
                       className="rounded border border-ink-200 px-1.5 text-xs"
                     >
                       +
                     </button>
                     <button
                       type="button"
-                      onClick={() => removeItem(item.id)}
+                      onClick={() => removeItem(itemKey(item))}
                       className="text-xs text-brand-600"
                     >
                       Retirer

@@ -7,6 +7,7 @@ import { orders, orderItems } from "../db/schema";
 import { getProductsByIds, decrementStock } from "../lib/products";
 import { deliveryFeeFor } from "../lib/constants";
 import { generateReference } from "../lib/format";
+import { parseColors } from "../lib/product-variants";
 import type { OrderStatus } from "../lib/constants";
 
 // ---------------------------------------------------------------------------
@@ -15,6 +16,8 @@ import type { OrderStatus } from "../lib/constants";
 export interface CheckoutItemInput {
   productId: number;
   quantity: number;
+  /** Couleur choisie par le client — validée CONTRE la liste du produit. */
+  color?: string;
 }
 
 export interface CheckoutInput {
@@ -40,6 +43,7 @@ export interface StoredOrderItem {
   name: string;
   quantity: number;
   unitPrice: number;
+  variant: string | null; // couleur choisie (snapshot)
 }
 
 export interface StoredOrder {
@@ -123,11 +127,30 @@ export async function createOrder(input: CheckoutInput): Promise<CreateOrderResu
       return { ok: false, error: "Un produit de votre panier n'est plus disponible." };
     if (product.stock < quantity)
       return { ok: false, error: `Stock insuffisant pour « ${product.name} ».` };
+
+    // 🎨 Couleur : acceptée UNIQUEMENT si elle figure dans la liste du produit
+    // (jamais de texte libre côté serveur → pas d'injection ni de fraude).
+    let variant: string | null = null;
+    if (typeof item.color === "string" && item.color.trim() !== "") {
+      const wanted = stripControlChars(item.color).trim().slice(0, 40);
+      const known = parseColors(product.colors);
+      const match = known.find(
+        (c) => c.name.localeCompare(wanted, "fr", { sensitivity: "base" }) === 0
+      );
+      if (!match)
+        return {
+          ok: false,
+          error: `Couleur invalide pour « ${product.name} » — veuillez la choisir dans la liste.`,
+        };
+      variant = match.name;
+    }
+
     lines.push({
       productId: product.id,
       name: product.name,
       quantity,
       unitPrice: product.price,
+      variant,
     });
   }
 
@@ -156,7 +179,10 @@ export async function createOrder(input: CheckoutInput): Promise<CreateOrderResu
         })
         .returning({ id: orders.id });
       const orderId = inserted[0].id;
-      await db.insert(orderItems).values(lines.map((l) => ({ orderId, ...l })));
+      // colonne variant NOT NULL : null (pas de couleur) → chaîne vide
+      await db
+        .insert(orderItems)
+        .values(lines.map((l) => ({ orderId, ...l, variant: l.variant ?? "" })));
       // Le stock diminue dès que la commande est validée
       await decrementStock(lines.map((l) => ({ productId: l.productId, quantity: l.quantity })));
       return { ok: true, reference, total };
@@ -202,11 +228,12 @@ export async function listOrders(): Promise<StoredOrder[]> {
         ...r,
         items: items
           .filter((i) => i.orderId === r.id)
-          .map(({ productId, name, quantity, unitPrice }) => ({
+          .map(({ productId, name, quantity, unitPrice, variant }) => ({
             productId,
             name,
             quantity,
             unitPrice,
+            variant: variant || null,
           })),
       }));
     } catch (error) {
@@ -214,7 +241,12 @@ export async function listOrders(): Promise<StoredOrder[]> {
       return [];
     }
   }
-  return listDemoOrders().map((o) => ({ ...o, createdAt: new Date(o.createdAt) }));
+  // Mode démo : on normalise variant (absent/null → null) pour coller à StoredOrder
+  return listDemoOrders().map((o) => ({
+    ...o,
+    createdAt: new Date(o.createdAt),
+    items: o.items.map((i) => ({ ...i, variant: i.variant ?? null })),
+  }));
 }
 
 export async function updateOrderStatus(

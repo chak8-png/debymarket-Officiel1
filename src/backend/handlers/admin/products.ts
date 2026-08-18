@@ -12,9 +12,19 @@ import {
 } from "@/backend/lib/products";
 import { getCategoryById, getChildren } from "@/backend/lib/categories";
 import { readJsonBody, BodyTooLargeError } from "@/backend/lib/http-guards";
+import {
+  MAX_GALLERY,
+  MAX_COLORS,
+  MAX_COLOR_NAME,
+  type ProductColor,
+} from "@/backend/lib/product-variants";
 
 // Photo encodée en base64 acceptée jusqu'à ~800 Ko (≈ 600 Ko d'image JPEG).
 const MAX_DATA_URI = 800_000;
+// Photos de galerie : compressées plus fort côté navigateur (640px) → ≤ 450 Ko chacune.
+const MAX_GALLERY_DATA_URI = 450_000;
+// Corps de requête : photo principale + jusqu'à 5 photos de galerie + marge JSON.
+const MAX_BODY = 3_800_000;
 
 // ── Validation des champs ────────────────────────────────────────────────
 
@@ -62,6 +72,60 @@ function cleanImageUrl(v: unknown): string | null {
   return null;
 }
 
+/**
+ * Galerie : tableau de photos (mêmes formats que la photo principale, photos
+ * encodées plafonnées plus bas). Entrées invalides ignorées, 5 max conservées.
+ * ⚠️ Jamais de SVG (risque de script embarqué) — cleanImageUrl l'exige déjà
+ * via le préfixe data:image/ … on durcit ici en refusant image/svg.
+ */
+function cleanGallery(v: unknown): string[] {
+  if (!Array.isArray(v)) return [];
+  const out: string[] = [];
+  for (const item of v) {
+    if (typeof item !== "string") continue;
+    const s = item.trim();
+    if (s.startsWith("data:image/svg")) continue;
+    if (s.startsWith("/images/") && s.length <= 500) out.push(s);
+    else if (s.startsWith("https://") && s.length <= 1000) out.push(s);
+    else if (s.startsWith("data:image/") && s.length <= MAX_GALLERY_DATA_URI) out.push(s);
+    if (out.length >= MAX_GALLERY) break;
+  }
+  // dédoublonnage en conservant l'ordre
+  return [...new Set(out)];
+}
+
+/**
+ * Couleurs : nom 1-30 caractères (sans caractères de contrôle) + hex #RRGGBB
+ * optionnel. Doublons de noms supprimés, 8 max.
+ */
+function cleanColors(v: unknown): ProductColor[] {
+  if (!Array.isArray(v)) return [];
+  const seen = new Set<string>();
+  const out: ProductColor[] = [];
+  for (const item of v) {
+    if (typeof item !== "object" || item === null) continue;
+    const rawName = (item as { name?: unknown }).name;
+    if (typeof rawName !== "string") continue;
+    // retire les caractères de contrôle (NUL…US, DEL) — sécurité export Excel
+    const name = rawName
+      .replace(/[\u0000-\u001F\u007F]/g, "")
+      .trim()
+      .slice(0, MAX_COLOR_NAME);
+    if (name === "") continue;
+    const key = name.toLocaleLowerCase("fr");
+    if (seen.has(key)) continue;
+    seen.add(key);
+    const rawHex = (item as { hex?: unknown }).hex;
+    const hex =
+      typeof rawHex === "string" && /^#[0-9a-fA-F]{6}$/.test(rawHex.trim())
+        ? rawHex.trim().toLowerCase()
+        : null;
+    out.push({ name, hex });
+    if (out.length >= MAX_COLORS) break;
+  }
+  return out;
+}
+
 function cleanStock(v: unknown): number | null {
   if (typeof v !== "number" || !Number.isFinite(v)) return null;
   return Math.max(0, Math.min(999999, Math.floor(v)));
@@ -72,11 +136,11 @@ function cleanStock(v: unknown): number | null {
 export async function POST(req: Request) {
   let body: Record<string, unknown> | null;
   try {
-    body = await readJsonBody<Record<string, unknown>>(req, 1_400_000); // ~1,4 Mo (photo)
+    body = await readJsonBody<Record<string, unknown>>(req, MAX_BODY);
   } catch (e) {
     if (e instanceof BodyTooLargeError) {
       return NextResponse.json(
-        { ok: false, error: "Requête trop volumineuse (photo trop lourde ?)." },
+        { ok: false, error: "Requête trop volumineuse (photos trop lourdes ?)." },
         { status: 413 }
       );
     }
@@ -106,6 +170,8 @@ export async function POST(req: Request) {
     categoryId,
     image: cleanEmoji(body.image),
     imageUrl: cleanImageUrl(body.imageUrl),
+    gallery: cleanGallery(body.gallery),
+    colors: cleanColors(body.colors),
     isFeatured: typeof body.isFeatured === "boolean" ? body.isFeatured : false,
     isActive: typeof body.isActive === "boolean" ? body.isActive : true,
     stock: cleanStock(body.stock) ?? 0,
@@ -141,11 +207,11 @@ export async function PATCH(
 
   let body: Record<string, unknown> | null;
   try {
-    body = await readJsonBody<Record<string, unknown>>(req, 1_400_000); // ~1,4 Mo (photo)
+    body = await readJsonBody<Record<string, unknown>>(req, MAX_BODY);
   } catch (e) {
     if (e instanceof BodyTooLargeError) {
       return NextResponse.json(
-        { ok: false, error: "Requête trop volumineuse." },
+        { ok: false, error: "Requête trop volumineuse (photos trop lourdes ?)." },
         { status: 413 }
       );
     }
@@ -192,6 +258,8 @@ export async function PATCH(
   if (body.image !== undefined) details.image = cleanEmoji(body.image);
   if (body.imageUrl !== undefined)
     details.imageUrl = cleanImageUrl(body.imageUrl);
+  if (body.gallery !== undefined) details.gallery = cleanGallery(body.gallery);
+  if (body.colors !== undefined) details.colors = cleanColors(body.colors);
   if (typeof body.isFeatured === "boolean") details.isFeatured = body.isFeatured;
   if (typeof body.isActive === "boolean") details.isActive = body.isActive;
 

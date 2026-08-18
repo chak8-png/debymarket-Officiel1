@@ -1,9 +1,10 @@
-# 🚀 Déploiement de Debymarket (remplacer debymarket.netlify.app)
+# 🚀 Déploiement de Debymarket (debymarket.netlify.app)
 
-Le site actuel https://debymarket.netlify.app est cassé (erreur serveur sur /products,
-boutique vide). Ce guide le remplace proprement par la nouvelle version.
+La nouvelle version est en ligne sur https://debymarket.netlify.app ✅
+Ce guide sert à : **(a)** mettre à jour le code, **(b)** reconnecter / recréer
+la base de données, **(c)** repartir de zéro si besoin.
 
-**Prérequis** : votre compte Netlify (celui du site actuel) + un compte GitHub.
+**Prérequis** : votre compte Netlify + un compte GitHub.
 Temps estimé : **15 minutes**.
 
 ---
@@ -80,3 +81,35 @@ Vérification côté Neon : dans votre projet → **Tables** → vous voyez
 - **Le site marche aussi sans base de données** (mode démo en mémoire) : même si la DB est en panne, la boutique reste visible — seules les commandes ne sont pas persistées. C'est ce qui évitera la page d'erreur actuelle.
 - `npm run db:studio` en local : explorateur visuel de la base Neon.
 - Le seed en production exige `x-seed-secret` (votre `ADMIN_PASSWORD`) — personne d'autre ne peut le déclencher.
+- 🔄 **Après chaque mise à jour du code touchant à la base** (nouvelles colonnes…),
+  relancez simplement la commande seed de l'étape 4 : elle est idempotente —
+  elle **ajoute les colonnes manquantes** et complète le catalogue, sans jamais
+  effacer ni dupliquer vos données (produits ajoutés au dashboard et commandes
+  conservés ✅).
+- 🚫 **Vous ne voulez PAS les 85 articles de démonstration ?** Remplacez l'URL du
+  seed par `/api/seed?tables=1` : seules les **tables et colonnes** sont créées /
+  mises à niveau — aucun article démo n'est inséré, vos produits restent les
+  seuls de la boutique.
+
+---
+
+## Alternative Render (fichier `render.yaml` fourni)
+
+1. **render.com** → *Sign up with GitHub* (gratuit, sans carte)
+2. Dashboard → **New + → Blueprint** → choisir le dépôt `debymarket`
+   (le fichier `render.yaml` pré-remplit build, démarrage, région Francfort)
+3. Renseignez les secrets demandés (`DATABASE_URL`, `ADMIN_PASSWORD`) → **Deploy**
+4. Puis le seed : `curl.exe -X POST https://VOTRE-NOM.onrender.com/api/seed -H "x-seed-secret: …"`
+
+> ⚠️ Plan gratuit Render : le site **s'endort après 15 min sans visite**
+> (30-60 s de réveil à la première visite). Le plan **Starter (7 $/mois)**
+> supprime la veille.
+
+## Alternative Vercel — ⚠️ payante pour l'e-commerce
+
+Le déploiement fonctionnerait sans changer une ligne de code (Next.js natif)…
+**mais** les conditions Vercel interdisent l'usage commercial sur le plan gratuit
+Hobby : une boutique impose le plan **Pro (~20 $/mois/utilisateur)**.
+Si vous y allez quand même : mêmes variables d'environnement qu'à l'étape 3,
+utilisez de préférence la chaîne Neon **« Pooled connection »** (`-pooler`),
+le `netlify.toml` est simplement ignoré.

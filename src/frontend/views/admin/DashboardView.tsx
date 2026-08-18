@@ -3,6 +3,10 @@ import Link from "next/link";
 import { listOrders } from "@/backend/services/orders";
 import { fetchProducts } from "@/backend/lib/products";
 import {
+  parseGallery,
+  parseColors,
+} from "@/backend/lib/product-variants";
+import {
   getRootCategories,
   getChildren,
   getCategoryById,
@@ -182,6 +186,11 @@ export default async function DashboardView() {
                       {order.items.map((i) => (
                         <p key={i.productId} className="line-clamp-1">
                           {i.quantity}× {i.name}
+                          {i.variant && (
+                            <span className="ml-1 rounded-full bg-violet-100 px-2 py-0.5 text-[10px] font-bold text-violet-700 align-middle">
+                              🎨 {i.variant}
+                            </span>
+                          )}
                         </p>
                       ))}
                     </td>
@@ -300,6 +309,8 @@ export default async function DashboardView() {
                                   categoryId: p.categoryId,
                                   image: p.image,
                                   imageUrl: p.imageUrl,
+                                  gallery: parseGallery(p.gallery),
+                                  colors: parseColors(p.colors),
                                   isFeatured: p.isFeatured,
                                   isActive: p.isActive,
                                 }}

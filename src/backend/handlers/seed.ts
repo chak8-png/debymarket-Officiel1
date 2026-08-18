@@ -48,6 +48,8 @@ async function ensureTables(): Promise<void> {
       stock integer NOT NULL DEFAULT 0,
       image text NOT NULL DEFAULT '🛍️',
       image_url text,
+      gallery text NOT NULL DEFAULT '',
+      colors text NOT NULL DEFAULT '',
       category_id integer NOT NULL,
       rating integer NOT NULL DEFAULT 4,
       is_featured boolean NOT NULL DEFAULT false,
@@ -79,7 +81,8 @@ async function ensureTables(): Promise<void> {
       product_id integer NOT NULL,
       name text NOT NULL,
       quantity integer NOT NULL,
-      unit_price integer NOT NULL
+      unit_price integer NOT NULL,
+      variant text NOT NULL DEFAULT ''
     )
   `);
   await db.execute(sql`
@@ -88,6 +91,18 @@ async function ensureTables(): Promise<void> {
       value text NOT NULL
     )
   `);
+  // 🔄 MISE À NIVEAU des bases déjà seedées (ALTER idempotent : IF NOT EXISTS).
+  // Nouvelles colonnes galerie/couleurs (produits) et variante (lignes de
+  // commande) — relancer simplement POST /api/seed suffit, aucune donnée perdue.
+  await db.execute(
+    sql`ALTER TABLE products ADD COLUMN IF NOT EXISTS gallery text NOT NULL DEFAULT ''`
+  );
+  await db.execute(
+    sql`ALTER TABLE products ADD COLUMN IF NOT EXISTS colors text NOT NULL DEFAULT ''`
+  );
+  await db.execute(
+    sql`ALTER TABLE order_items ADD COLUMN IF NOT EXISTS variant text NOT NULL DEFAULT ''`
+  );
 }
 
 /**
@@ -145,6 +160,15 @@ export async function POST(req: Request) {
   try {
     // 1. Tables (créées automatiquement si la base est neuve)
     await ensureTables();
+
+    // 🆕 MODE « TABLES SEULES » (POST /api/seed?tables=1) : crée ou met à
+    // niveau le SCHÉMA uniquement — AUCUN article de démonstration inséré.
+    // À utiliser quand la boutique ne vend que ses propres produits.
+    // (Le catalogue démo n'est qu'un remplissage de départ facultatif.)
+    if (new URL(req.url).searchParams.get("tables") === "1") {
+      await realignSequences();
+      return NextResponse.json({ ok: true, tablesOnly: true });
+    }
 
     // 2. Données de départ (rien n'est dupliqué si on relance)
     await db.insert(categories).values(CATEGORY_LIST).onConflictDoNothing();

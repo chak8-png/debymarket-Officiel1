@@ -19,7 +19,7 @@ from functools import lru_cache
 BASE = os.environ.get("DEBY_BASE", "http://localhost:3105")
 OUT = "/home/user/site-vitrine"
 WHATSAPP = (
-    "https://wa.me/225703134582?text="
+    "https://wa.me/2250703134582?text="
     "Bonjour%20Debymarket%20!%20Je%20souhaite%20passer%20une%20commande%20%F0%9F%9B%92"
 )
 

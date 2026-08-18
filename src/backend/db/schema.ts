@@ -32,7 +32,11 @@ export const products = pgTable("products", {
   oldPrice: integer("old_price"), // prix barré si promo
   stock: integer("stock").notNull().default(0),
   image: text("image").notNull().default("🛍️"), // emoji (visuel de secours)
-  imageUrl: text("image_url"), // photo du produit (optionnelle)
+  imageUrl: text("image_url"), // photo principale (optionnelle)
+  // Galerie : photos SUPPLÉMENTAIRES — tableau JSON texte, ex. ["/images/x.jpg","data:image/…"]
+  gallery: text("gallery").notNull().default(""),
+  // Couleurs proposées — tableau JSON texte, ex. [{"name":"Blanc","hex":"#f8fafc"}]
+  colors: text("colors").notNull().default(""),
   categoryId: integer("category_id").notNull(),
   rating: integer("rating").notNull().default(4), // 0-5
   isFeatured: boolean("is_featured").notNull().default(false),
@@ -66,6 +70,7 @@ export const orderItems = pgTable("order_items", {
   name: text("name").notNull(), // snapshot du nom au moment de l'achat
   quantity: integer("quantity").notNull(),
   unitPrice: integer("unit_price").notNull(), // snapshot du prix au moment de l'achat
+  variant: text("variant").notNull().default(""), // couleur choisie ("" = aucune)
 });
 
 // ---------------------------------------------------------------------------

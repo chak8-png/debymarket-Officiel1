@@ -7,6 +7,11 @@ import { products } from "../db/schema";
 import type { Product } from "../db/schema";
 import { PRODUCTS } from "./seed-data";
 import { getDescendantIds } from "./categories";
+import {
+  serializeGallery,
+  serializeColors,
+  type ProductColor,
+} from "./product-variants";
 
 export interface ProductQuery {
   categorySlug?: string;
@@ -181,10 +186,13 @@ export interface ProductInput {
   price: number;
   categoryId: number;
   image: string; // emoji de secours (affiché si pas de photo)
-  imageUrl: string | null; // photo : /images/..., https://... ou data:image/...
+  imageUrl: string | null; // photo principale : /images/..., https://... ou data:image/...
+  gallery: string[]; // photos supplémentaires (ordre conservé, 5 max)
+  colors: ProductColor[]; // couleurs proposées (8 max)
   isFeatured: boolean;
   isActive: boolean;
 }
+
 
 /** Slug URL à partir du nom ("Chemise Élégante !" → "chemise-elegante"). */
 export function slugify(name: string): string {
@@ -214,12 +222,20 @@ export async function createProduct(
 ): Promise<Product | null> {
   const slug = await uniqueSlug(slugify(input.name));
   const stock = Math.max(0, Math.floor(input.stock ?? 0));
+  // Tableaux (galerie/couleurs) → JSON texte pour la colonne TEXT ("" si vide)
+  const { gallery, colors, ...rest } = input;
+  const row = {
+    ...rest,
+    slug,
+    stock,
+    oldPrice: null,
+    rating: 4,
+    gallery: serializeGallery(gallery),
+    colors: serializeColors(colors),
+  };
   if (db) {
     try {
-      const rows = await db
-        .insert(products)
-        .values({ ...input, slug, stock, oldPrice: null, rating: 4 })
-        .returning();
+      const rows = await db.insert(products).values(row).returning();
       return rows[0] ?? null;
     } catch (error) {
       console.error("[products] Erreur création produit :", error);
@@ -228,11 +244,7 @@ export async function createProduct(
   }
   const product: Product = {
     id: nextDemoProductId(PRODUCTS),
-    slug,
-    ...input,
-    oldPrice: null,
-    stock,
-    rating: 4,
+    ...row,
     createdAt: new Date(),
   };
   upsertDemoProduct(PRODUCTS, product);
@@ -244,11 +256,16 @@ export async function updateProduct(
   id: number,
   patch: Partial<ProductInput>
 ): Promise<boolean> {
+  const { gallery, colors, ...rest } = patch;
+  const row: Omit<typeof rest, "gallery" | "colors"> &
+    Partial<Pick<Product, "gallery" | "colors">> = { ...rest };
+  if (gallery !== undefined) row.gallery = serializeGallery(gallery);
+  if (colors !== undefined) row.colors = serializeColors(colors);
   if (db) {
     try {
       const rows = await db
         .update(products)
-        .set(patch)
+        .set(row)
         .where(eq(products.id, id))
         .returning({ id: products.id });
       return rows.length > 0;
@@ -260,7 +277,7 @@ export async function updateProduct(
   const catalog = getDemoCatalog(PRODUCTS);
   const current = catalog.find((p) => p.id === id);
   if (!current) return false;
-  upsertDemoProduct(PRODUCTS, { ...current, ...patch });
+  upsertDemoProduct(PRODUCTS, { ...current, ...row });
   return true;
 }
 

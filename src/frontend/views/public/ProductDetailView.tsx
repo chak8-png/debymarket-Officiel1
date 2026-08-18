@@ -9,9 +9,13 @@ import { getCategoryById, getBreadcrumb } from "@/backend/lib/categories";
 import { formatXOF } from "@/backend/lib/format";
 import { DELIVERY_TIME, DELIVERY_AREA } from "@/backend/lib/constants";
 import Gallery from "@/frontend/components/product/Gallery";
-import AddToCart from "@/frontend/components/product/AddToCart";
+import PurchasePanel from "@/frontend/components/product/PurchasePanel";
 import ProductCard from "@/frontend/components/product/ProductCard";
 import Stars from "@/frontend/components/ui/Stars";
+import {
+  displayImages,
+  parseColors,
+} from "@/backend/lib/product-variants";
 
 export default async function ProductDetailView({
   params,
@@ -25,6 +29,9 @@ export default async function ProductDetailView({
   const related = await fetchRelatedProducts(product);
   const category = getCategoryById(product.categoryId);
   const crumbs = category ? getBreadcrumb(category.slug) : [];
+  // 📸 Galerie (photo principale + supplémentaires) et 🎨 couleurs proposées
+  const images = displayImages(product.imageUrl, product.gallery);
+  const colors = parseColors(product.colors);
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8">
@@ -45,7 +52,7 @@ export default async function ProductDetailView({
       </nav>
 
       <div className="grid gap-10 lg:grid-cols-2">
-        <Gallery imageUrl={product.imageUrl} emoji={product.image} name={product.name} />
+        <Gallery images={images} emoji={product.image} name={product.name} />
 
         {/* Informations */}
         <div>
@@ -87,8 +94,8 @@ export default async function ProductDetailView({
           </p>
 
           <div className="mt-6">
-            <AddToCart
-              withQuantity
+            <PurchasePanel
+              colors={colors}
               product={{
                 id: product.id,
                 slug: product.slug,

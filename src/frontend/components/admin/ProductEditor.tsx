@@ -2,6 +2,11 @@
 
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
+import {
+  MAX_COLORS,
+  MAX_GALLERY,
+  type ProductColor,
+} from "@/backend/lib/product-variants";
 
 // Éditeur de produit : bouton qui ouvre une fenêtre modale avec le formulaire.
 // - Sans `product` : mode CRÉATION (« ➕ Ajouter un produit »)
@@ -22,13 +27,21 @@ export interface EditableProduct {
   categoryId: number;
   image: string;
   imageUrl: string | null;
+  /** Photos supplémentaires (ordre conservé). */
+  gallery: string[];
+  /** Couleurs proposées à la vente. */
+  colors: ProductColor[];
   isFeatured: boolean;
   isActive: boolean;
 }
 
-/** Redimensionne une image côté client → data URI JPEG (max 800px). */
-async function fileToDataUri(file: File): Promise<string> {
-  const MAX = 800;
+/** Redimensionne une image côté client → data URI JPEG. */
+async function fileToDataUri(
+  file: File,
+  maxDim = 800,
+  quality = 0.82
+): Promise<string> {
+  const MAX = maxDim;
   const draw = (
     source: CanvasImageSource,
     width: number,
@@ -41,7 +54,7 @@ async function fileToDataUri(file: File): Promise<string> {
     const ctx = canvas.getContext("2d");
     if (!ctx) throw new Error("canvas");
     ctx.drawImage(source, 0, 0, canvas.width, canvas.height);
-    return canvas.toDataURL("image/jpeg", 0.82);
+    return canvas.toDataURL("image/jpeg", quality);
   };
 
   try {
@@ -104,9 +117,14 @@ export default function ProductEditor({
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [photo, setPhoto] = useState<string | null>(null);
   const [photoTouched, setPhotoTouched] = useState(false);
+  const [gallery, setGallery] = useState<string[]>([]);
+  const [colors, setColors] = useState<ProductColor[]>([]);
+  const [colorName, setColorName] = useState("");
+  const [colorHex, setColorHex] = useState("#1d4ed8");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const galleryRef = useRef<HTMLInputElement>(null);
 
   const isEdit = Boolean(product);
 
@@ -124,11 +142,17 @@ export default function ProductEditor({
       });
       setPhoto(product.imageUrl);
       setPhotoTouched(false);
+      setGallery(product.gallery ?? []);
+      setColors(product.colors ?? []);
     } else {
       setForm({ ...EMPTY_FORM, categoryId: String(categories[0]?.id ?? "") });
       setPhoto(null);
       setPhotoTouched(false);
+      setGallery([]);
+      setColors([]);
     }
+    setColorName("");
+    setColorHex("#1d4ed8");
     setError(null);
     setOpen(true);
   };
@@ -147,6 +171,41 @@ export default function ProductEditor({
     } catch {
       setError("Impossible de lire cette image (formats acceptés : JPG, PNG…).");
     }
+  };
+
+  const onGalleryFiles = async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    setError(null);
+    for (const file of Array.from(files)) {
+      if (gallery.length >= MAX_GALLERY) break;
+      try {
+        const dataUri = await fileToDataUri(file, 640, 0.75);
+        if (dataUri.length > 440_000) {
+          setError("Une photo de galerie reste trop lourde — ignorée.");
+          continue;
+        }
+        const uri = dataUri;
+        setGallery((prev) =>
+          prev.length >= MAX_GALLERY || prev.includes(uri) ? prev : [...prev, uri]
+        );
+      } catch {
+        setError("Une image n'a pas pu être lue — ignorée.");
+      }
+    }
+    if (galleryRef.current) galleryRef.current.value = "";
+  };
+
+  const addColor = () => {
+    const name = colorName.trim().slice(0, 30);
+    if (name === "") return;
+    if (colors.some((c) => c.name.toLocaleLowerCase("fr") === name.toLocaleLowerCase("fr"))) {
+      setError("Cette couleur est déjà dans la liste.");
+      return;
+    }
+    if (colors.length >= MAX_COLORS) return;
+    setError(null);
+    setColors((prev) => [...prev, { name, hex: colorHex }]);
+    setColorName("");
   };
 
   const submit = async (e: React.FormEvent) => {
@@ -175,6 +234,8 @@ export default function ProductEditor({
     } else if (photoTouched) {
       payload.imageUrl = photo ?? ""; // "" = retirer la photo
     }
+    payload.gallery = gallery;
+    payload.colors = colors;
 
     setLoading(true);
     try {
@@ -376,6 +437,66 @@ export default function ProductEditor({
                 </div>
               </div>
 
+              {/* 📸 Galerie : photos supplémentaires */}
+              <div>
+                <span className={labelCls}>
+                  📸 Photos supplémentaires{" "}
+                  <span className="font-normal text-gray-400">
+                    ({gallery.length}/{MAX_GALLERY} — miniatures sous la photo principale)
+                  </span>
+                </span>
+                <div className="flex flex-wrap items-center gap-2">
+                  {gallery.map((src, idx) => (
+                    <span
+                      key={idx}
+                      className="relative h-16 w-16 overflow-hidden rounded-xl border"
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={src}
+                        alt={`Photo ${idx + 2}`}
+                        className="h-full w-full object-cover"
+                      />
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setGallery(gallery.filter((_, i) => i !== idx))
+                        }
+                        aria-label={`Retirer la photo ${idx + 2}`}
+                        title="Retirer"
+                        className="absolute right-0.5 top-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-[10px] text-white transition hover:bg-red-600"
+                      >
+                        ✕
+                      </button>
+                    </span>
+                  ))}
+                  {gallery.length < MAX_GALLERY && (
+                    <>
+                      <input
+                        ref={galleryRef}
+                        type="file"
+                        accept="image/*"
+                        multiple
+                        className="hidden"
+                        onChange={(e) => onGalleryFiles(e.target.files)}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => galleryRef.current?.click()}
+                        className="flex h-16 w-16 flex-col items-center justify-center rounded-xl border-2 border-dashed border-brand-300 text-brand-500 transition hover:bg-brand-50"
+                      >
+                        <span className="text-xl leading-none">＋</span>
+                        <span className="mt-0.5 text-[9px] font-bold">Ajouter</span>
+                      </button>
+                    </>
+                  )}
+                </div>
+                <p className="mt-1 text-[11px] leading-tight text-gray-400">
+                  Jusqu&apos;à {MAX_GALLERY} photos (redimensionnées à 640px) — le
+                  client pourra les faire défiler sur la fiche produit.
+                </p>
+              </div>
+
               <div className="grid grid-cols-[1fr_auto] items-center gap-3">
                 <div>
                   <label className={labelCls} htmlFor="pe-emoji">
@@ -414,6 +535,81 @@ export default function ProductEditor({
                     👁️ Visible sur la boutique
                   </label>
                 </div>
+              </div>
+
+              {/* 🎨 Couleurs proposées */}
+              <div>
+                <span className={labelCls}>
+                  🎨 Couleurs proposées{" "}
+                  <span className="font-normal text-gray-400">
+                    ({colors.length}/{MAX_COLORS} — optionnel)
+                  </span>
+                </span>
+                {colors.length > 0 && (
+                  <div className="flex flex-wrap items-center gap-2">
+                    {colors.map((c) => (
+                      <span
+                        key={c.name}
+                        className="flex items-center gap-1.5 rounded-full border border-gray-200 bg-gray-50 px-2.5 py-1 text-xs font-semibold text-gray-700"
+                      >
+                        <span
+                          aria-hidden
+                          className="h-3.5 w-3.5 rounded-full border border-black/10"
+                          style={{ backgroundColor: c.hex ?? "#e5e7eb" }}
+                        />
+                        {c.name}
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setColors(colors.filter((x) => x.name !== c.name))
+                          }
+                          aria-label={`Retirer la couleur ${c.name}`}
+                          title="Retirer"
+                          className="text-gray-400 transition hover:text-red-500"
+                        >
+                          ✕
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+                {colors.length < MAX_COLORS && (
+                  <div className="mt-2 flex items-center gap-2">
+                    <input
+                      type="color"
+                      value={colorHex}
+                      onChange={(e) => setColorHex(e.target.value)}
+                      aria-label="Nuancier"
+                      title="Choisir la teinte"
+                      className="h-9 w-11 shrink-0 cursor-pointer rounded-lg border border-gray-200 bg-white p-1"
+                    />
+                    <input
+                      value={colorName}
+                      onChange={(e) => setColorName(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          addColor();
+                        }
+                      }}
+                      placeholder="Nom (ex : Bleu ciel)"
+                      maxLength={30}
+                      aria-label="Nom de la couleur"
+                      className={`${inputCls} flex-1`}
+                    />
+                    <button
+                      type="button"
+                      onClick={addColor}
+                      className="shrink-0 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-700 transition hover:bg-emerald-100"
+                    >
+                      ➕ Ajouter
+                    </button>
+                  </div>
+                )}
+                <p className="mt-1 text-[11px] leading-tight text-gray-400">
+                  Le client choisira une de ces couleurs sur la fiche — elle sera
+                  indiquée dans la commande et l&apos;export Excel.
+                </p>
               </div>
 
               {error && (
