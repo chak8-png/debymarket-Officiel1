@@ -31,6 +31,7 @@ export interface DemoOrder {  id: number;
     quantity: number;
     unitPrice: number;
     variant?: string | null; // couleur choisie (null/absent = aucune)
+    size?: string | null; // taille / pointure choisie
   }[];
 }
 

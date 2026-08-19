@@ -5,6 +5,7 @@ import { useRef, useState } from "react";
 import {
   MAX_COLORS,
   MAX_GALLERY,
+  MAX_SIZES,
   type ProductColor,
 } from "@/backend/lib/product-variants";
 
@@ -31,6 +32,8 @@ export interface EditableProduct {
   gallery: string[];
   /** Couleurs proposées à la vente. */
   colors: ProductColor[];
+  /** Tailles / pointures proposées (ex. S, M, L, XL, XXL ou 39…45). */
+  sizes: string[];
   isFeatured: boolean;
   isActive: boolean;
 }
@@ -119,6 +122,8 @@ export default function ProductEditor({
   const [photoTouched, setPhotoTouched] = useState(false);
   const [gallery, setGallery] = useState<string[]>([]);
   const [colors, setColors] = useState<ProductColor[]>([]);
+  const [sizes, setSizes] = useState<string[]>([]);
+  const [sizeInput, setSizeInput] = useState("");
   const [colorName, setColorName] = useState("");
   const [colorHex, setColorHex] = useState("#1d4ed8");
   const [loading, setLoading] = useState(false);
@@ -144,15 +149,18 @@ export default function ProductEditor({
       setPhotoTouched(false);
       setGallery(product.gallery ?? []);
       setColors(product.colors ?? []);
+      setSizes(product.sizes ?? []);
     } else {
       setForm({ ...EMPTY_FORM, categoryId: String(categories[0]?.id ?? "") });
       setPhoto(null);
       setPhotoTouched(false);
       setGallery([]);
       setColors([]);
+      setSizes([]);
     }
     setColorName("");
     setColorHex("#1d4ed8");
+    setSizeInput("");
     setError(null);
     setOpen(true);
   };
@@ -208,6 +216,37 @@ export default function ProductEditor({
     setColorName("");
   };
 
+  /** Ajoute une étiquette de taille/pointure unique (insensible à la casse). */
+  const addSize = (raw: string) => {
+    const label = raw.trim().slice(0, 10);
+    if (label === "") return;
+    setError(null);
+    setSizes((prev) => {
+      if (prev.length >= MAX_SIZES) return prev;
+      const key = label.toLocaleLowerCase("fr");
+      if (prev.some((x) => x.toLocaleLowerCase("fr") === key)) return prev;
+      return [...prev, label];
+    });
+  };
+
+  /** Raccourcis : série complète de tailles vêtement ou de pointures. */
+  const addSizePreset = (labels: string[]) => {
+    setError(null);
+    setSizes((prev) => {
+      const keys = new Set(prev.map((x) => x.toLocaleLowerCase("fr")));
+      const next = [...prev];
+      for (const l of labels) {
+        if (next.length >= MAX_SIZES) break;
+        if (!keys.has(l.toLocaleLowerCase("fr"))) {
+          keys.add(l.toLocaleLowerCase("fr"));
+          next.push(l);
+        }
+      }
+      return next;
+    });
+    setSizeInput("");
+  };
+
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -236,6 +275,7 @@ export default function ProductEditor({
     }
     payload.gallery = gallery;
     payload.colors = colors;
+    payload.sizes = sizes;
 
     setLoading(true);
     try {
@@ -609,6 +649,92 @@ export default function ProductEditor({
                 <p className="mt-1 text-[11px] leading-tight text-gray-400">
                   Le client choisira une de ces couleurs sur la fiche — elle sera
                   indiquée dans la commande et l&apos;export Excel.
+                </p>
+              </div>
+
+              {/* 📏 Tailles / pointures proposées */}
+              <div>
+                <span className={labelCls}>
+                  📏 Tailles / Pointures{" "}
+                  <span className="font-normal text-gray-400">
+                    ({sizes.length}/{MAX_SIZES} — optionnel)
+                  </span>
+                </span>
+                {sizes.length > 0 && (
+                  <div className="flex flex-wrap items-center gap-2">
+                    {sizes.map((sz) => (
+                      <span
+                        key={sz}
+                        className="flex items-center gap-1.5 rounded-xl border border-gray-200 bg-gray-50 px-2.5 py-1 text-xs font-bold text-gray-700"
+                      >
+                        {sz}
+                        <button
+                          type="button"
+                          onClick={() => setSizes(sizes.filter((x) => x !== sz))}
+                          aria-label={`Retirer la taille ${sz}`}
+                          title="Retirer"
+                          className="text-gray-400 transition hover:text-red-500"
+                        >
+                          ✕
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+                {sizes.length < MAX_SIZES && (
+                  <div className="mt-2 space-y-2">
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          addSizePreset(["S", "M", "L", "XL", "XXL"])
+                        }
+                        className="rounded-lg border border-sky-200 bg-sky-50 px-3 py-1.5 text-xs font-bold text-sky-700 transition hover:bg-sky-100"
+                      >
+                        👕 Tailles S → XXL
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          addSizePreset(["39", "40", "41", "42", "43", "44", "45"])
+                        }
+                        className="rounded-lg border border-sky-200 bg-sky-50 px-3 py-1.5 text-xs font-bold text-sky-700 transition hover:bg-sky-100"
+                      >
+                        👞 Pointures 39 → 45
+                      </button>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <input
+                        value={sizeInput}
+                        onChange={(e) => setSizeInput(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            addSize(sizeInput);
+                            setSizeInput("");
+                          }
+                        }}
+                        placeholder="Autre (ex : 46, XXL…)"
+                        maxLength={10}
+                        aria-label="Taille ou pointure personnalisée"
+                        className={`${inputCls} flex-1`}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          addSize(sizeInput);
+                          setSizeInput("");
+                        }}
+                        className="shrink-0 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-700 transition hover:bg-emerald-100"
+                      >
+                        ➕ Ajouter
+                      </button>
+                    </div>
+                  </div>
+                )}
+                <p className="mt-1 text-[11px] leading-tight text-gray-400">
+                  Le client choisira la taille sur la fiche — elle sera indiquée
+                  dans la commande et l&apos;export Excel.
                 </p>
               </div>
 

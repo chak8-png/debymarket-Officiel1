@@ -170,7 +170,11 @@ function buildTransactionsSheet(wb: ExcelJS.Workbook, orders: StoredOrder[]) {
       address: safeText(o.address),
       items: safeText(
         o.items
-          .map((i) => `${i.quantity}× ${i.name}${i.variant ? ` (${i.variant})` : ""}`)
+          .map(
+            (i) =>
+              `${i.quantity}× ${i.name}` +
+              `${i.variant || i.size ? ` (${[i.variant, i.size].filter(Boolean).join(" / ")})` : ""}`
+          )
           .join(" | ")
       ),
       subtotal: o.subtotal,
@@ -206,6 +210,7 @@ function buildItemsSheet(wb: ExcelJS.Workbook, orders: StoredOrder[]) {
     { header: "Date", key: "date", width: 18 },
     { header: "Article", key: "name", width: 36 },
     { header: "Couleur", key: "variant", width: 14 },
+    { header: "Taille / Pointure", key: "size", width: 16 },
     { header: "Quantité", key: "quantity", width: 10 },
     { header: "Prix unitaire", key: "unitPrice", width: 16, style: { numFmt: FCFA_FORMAT } },
     { header: "Montant", key: "amount", width: 16, style: { numFmt: FCFA_FORMAT } },
@@ -219,6 +224,7 @@ function buildItemsSheet(wb: ExcelJS.Workbook, orders: StoredOrder[]) {
         date: fmtDate(o.createdAt),
         name: safeText(item.name),
         variant: item.variant ? safeText(item.variant) : "—",
+        size: item.size ? safeText(item.size) : "—",
         quantity: item.quantity,
         unitPrice: item.unitPrice,
         amount: item.unitPrice * item.quantity,

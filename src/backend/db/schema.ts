@@ -37,6 +37,8 @@ export const products = pgTable("products", {
   gallery: text("gallery").notNull().default(""),
   // Couleurs proposées — tableau JSON texte, ex. [{"name":"Blanc","hex":"#f8fafc"}]
   colors: text("colors").notNull().default(""),
+  // Tailles / pointures proposées — tableau JSON texte, ex. ["S","M","L","XL","XXL"] ou ["39",…,"45"]
+  sizes: text("sizes").notNull().default(""),
   categoryId: integer("category_id").notNull(),
   rating: integer("rating").notNull().default(4), // 0-5
   isFeatured: boolean("is_featured").notNull().default(false),
@@ -71,6 +73,7 @@ export const orderItems = pgTable("order_items", {
   quantity: integer("quantity").notNull(),
   unitPrice: integer("unit_price").notNull(), // snapshot du prix au moment de l'achat
   variant: text("variant").notNull().default(""), // couleur choisie ("" = aucune)
+  size: text("size").notNull().default(""), // taille / pointure choisie ("" = aucune)
 });
 
 // ---------------------------------------------------------------------------

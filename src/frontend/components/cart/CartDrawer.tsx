@@ -94,9 +94,19 @@ export default function CartDrawer() {
                     >
                       {item.name}
                     </Link>
-                    {item.color && (
+                    {(item.color || item.size) && (
                       <p className="mt-0.5 text-xs text-gray-500">
-                        🎨 Couleur : <span className="font-semibold">{item.color}</span>
+                        {item.color && (
+                          <>
+                            🎨 <span className="font-semibold">{item.color}</span>
+                          </>
+                        )}
+                        {item.color && item.size && " · "}
+                        {item.size && (
+                          <>
+                            📏 <span className="font-semibold">{item.size}</span>
+                          </>
+                        )}
                       </p>
                     )}
                     <p className="mt-0.5 text-sm font-bold text-brand-600">

@@ -15,6 +15,7 @@ import Stars from "@/frontend/components/ui/Stars";
 import {
   displayImages,
   parseColors,
+  parseSizes,
 } from "@/backend/lib/product-variants";
 
 export default async function ProductDetailView({
@@ -32,6 +33,7 @@ export default async function ProductDetailView({
   // 📸 Galerie (photo principale + supplémentaires) et 🎨 couleurs proposées
   const images = displayImages(product.imageUrl, product.gallery);
   const colors = parseColors(product.colors);
+  const sizes = parseSizes(product.sizes);
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8">
@@ -96,6 +98,7 @@ export default async function ProductDetailView({
           <div className="mt-6">
             <PurchasePanel
               colors={colors}
+              sizes={sizes}
               product={{
                 id: product.id,
                 slug: product.slug,

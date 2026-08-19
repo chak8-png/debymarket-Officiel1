@@ -37,7 +37,7 @@ export default function CheckoutView() {
           city,
           address,
           website, // pot de miel anti-robots (vide chez un humain)
-          items: items.map((i) => ({ productId: i.id, quantity: i.quantity, color: i.color ?? undefined })),
+          items: items.map((i) => ({ productId: i.id, quantity: i.quantity, color: i.color ?? undefined, size: i.size ?? undefined })),
         }),
       });
       const data = (await res.json()) as
@@ -282,6 +282,11 @@ export default function CheckoutView() {
                     {item.color && (
                       <span className="ml-1.5 text-xs font-normal text-ink-400">
                         · {item.color}
+                      </span>
+                    )}
+                    {item.size && (
+                      <span className="ml-1.5 text-xs font-normal text-ink-400">
+                        · Taille {item.size}
                       </span>
                     )}
                   </p>

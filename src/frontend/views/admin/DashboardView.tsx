@@ -5,6 +5,7 @@ import { fetchProducts } from "@/backend/lib/products";
 import {
   parseGallery,
   parseColors,
+  parseSizes,
 } from "@/backend/lib/product-variants";
 import {
   getRootCategories,
@@ -133,14 +134,24 @@ export default async function DashboardView() {
           <h2 className="font-display text-xl font-semibold tracking-tight">
             🧾 Historique des transactions
           </h2>
-          <a
-            href="/api/admin/export"
-            download
-            className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-sm font-bold text-white shadow-sm transition hover:bg-emerald-700"
-            title="Télécharger l'historique complet au format Excel (.xlsx)"
-          >
-            📥 Télécharger Excel
-          </a>
+          <div className="flex flex-wrap gap-2">
+            <a
+              href="/api/admin/export"
+              download
+              className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-sm font-bold text-white shadow-sm transition hover:bg-emerald-700"
+              title="Télécharger l'historique complet au format Excel (.xlsx)"
+            >
+              📥 Télécharger Excel
+            </a>
+            <a
+              href="/api/admin/backup"
+              download
+              className="inline-flex items-center gap-2 rounded-xl border border-sky-200 bg-sky-50 px-4 py-2 text-sm font-bold text-sky-700 shadow-sm transition hover:bg-sky-100"
+              title="Sauvegarde complète de la boutique (produits, commandes, réglages) au format JSON"
+            >
+              💾 Sauvegarde du site
+            </a>
+          </div>
         </div>
         {orders.length === 0 ? (
           <p className="mt-4 rounded-2xl border border-dashed bg-white px-6 py-10 text-center text-sm text-gray-500">
@@ -189,6 +200,11 @@ export default async function DashboardView() {
                           {i.variant && (
                             <span className="ml-1 rounded-full bg-violet-100 px-2 py-0.5 text-[10px] font-bold text-violet-700 align-middle">
                               🎨 {i.variant}
+                            </span>
+                          )}
+                          {i.size && (
+                            <span className="ml-1 rounded-full bg-sky-100 px-2 py-0.5 text-[10px] font-bold text-sky-700 align-middle">
+                              📏 {i.size}
                             </span>
                           )}
                         </p>
@@ -311,6 +327,7 @@ export default async function DashboardView() {
                                   imageUrl: p.imageUrl,
                                   gallery: parseGallery(p.gallery),
                                   colors: parseColors(p.colors),
+                                  sizes: parseSizes(p.sizes),
                                   isFeatured: p.isFeatured,
                                   isActive: p.isActive,
                                 }}

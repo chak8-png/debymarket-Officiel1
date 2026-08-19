@@ -16,6 +16,8 @@ import {
   MAX_GALLERY,
   MAX_COLORS,
   MAX_COLOR_NAME,
+  MAX_SIZES,
+  MAX_SIZE_LABEL,
   type ProductColor,
 } from "@/backend/lib/product-variants";
 
@@ -66,6 +68,8 @@ function cleanEmoji(v: unknown): string {
 function cleanImageUrl(v: unknown): string | null {
   if (typeof v !== "string" || v.trim() === "") return null;
   const s = v.trim();
+  // SVG refusé (peut embarquer du script) — comme pour la galerie et l'accueil
+  if (s.startsWith("data:image/svg")) return null;
   if (s.startsWith("/images/") && s.length <= 500) return s;
   if (s.startsWith("https://") && s.length <= 1000) return s;
   if (s.startsWith("data:image/") && s.length <= MAX_DATA_URI) return s;
@@ -126,6 +130,27 @@ function cleanColors(v: unknown): ProductColor[] {
   return out;
 }
 
+/**
+ * Tailles / pointures : étiquettes courtes ("S", "XL", "42"…),
+ * caractères de contrôle retirés, doublons ignorés, 15 max.
+ */
+function cleanSizes(v: unknown): string[] {
+  if (!Array.isArray(v)) return [];
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const item of v) {
+    if (typeof item !== "string") continue;
+    const label = item.replace(/[^\p{L}\p{N} .+-]/gu, "").trim().slice(0, MAX_SIZE_LABEL);
+    if (label === "") continue;
+    const key = label.toLocaleLowerCase("fr");
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(label);
+    if (out.length >= MAX_SIZES) break;
+  }
+  return out;
+}
+
 function cleanStock(v: unknown): number | null {
   if (typeof v !== "number" || !Number.isFinite(v)) return null;
   return Math.max(0, Math.min(999999, Math.floor(v)));
@@ -172,6 +197,7 @@ export async function POST(req: Request) {
     imageUrl: cleanImageUrl(body.imageUrl),
     gallery: cleanGallery(body.gallery),
     colors: cleanColors(body.colors),
+    sizes: cleanSizes(body.sizes),
     isFeatured: typeof body.isFeatured === "boolean" ? body.isFeatured : false,
     isActive: typeof body.isActive === "boolean" ? body.isActive : true,
     stock: cleanStock(body.stock) ?? 0,
@@ -260,6 +286,7 @@ export async function PATCH(
     details.imageUrl = cleanImageUrl(body.imageUrl);
   if (body.gallery !== undefined) details.gallery = cleanGallery(body.gallery);
   if (body.colors !== undefined) details.colors = cleanColors(body.colors);
+  if (body.sizes !== undefined) details.sizes = cleanSizes(body.sizes);
   if (typeof body.isFeatured === "boolean") details.isFeatured = body.isFeatured;
   if (typeof body.isActive === "boolean") details.isActive = body.isActive;
 

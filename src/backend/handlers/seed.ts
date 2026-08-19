@@ -50,6 +50,7 @@ async function ensureTables(): Promise<void> {
       image_url text,
       gallery text NOT NULL DEFAULT '',
       colors text NOT NULL DEFAULT '',
+      sizes text NOT NULL DEFAULT '',
       category_id integer NOT NULL,
       rating integer NOT NULL DEFAULT 4,
       is_featured boolean NOT NULL DEFAULT false,
@@ -82,7 +83,8 @@ async function ensureTables(): Promise<void> {
       name text NOT NULL,
       quantity integer NOT NULL,
       unit_price integer NOT NULL,
-      variant text NOT NULL DEFAULT ''
+      variant text NOT NULL DEFAULT '',
+      size text NOT NULL DEFAULT ''
     )
   `);
   await db.execute(sql`
@@ -102,6 +104,12 @@ async function ensureTables(): Promise<void> {
   );
   await db.execute(
     sql`ALTER TABLE order_items ADD COLUMN IF NOT EXISTS variant text NOT NULL DEFAULT ''`
+  );
+  await db.execute(
+    sql`ALTER TABLE products ADD COLUMN IF NOT EXISTS sizes text NOT NULL DEFAULT ''`
+  );
+  await db.execute(
+    sql`ALTER TABLE order_items ADD COLUMN IF NOT EXISTS size text NOT NULL DEFAULT ''`
   );
 }
 

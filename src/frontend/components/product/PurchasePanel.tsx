@@ -7,17 +7,20 @@ import type { ProductColor } from "@/backend/lib/product-variants";
 
 /**
  * Panneau d'achat de la fiche produit : sélecteur de couleur (pastilles) +
- * bouton quantité / ajout au panier. La couleur choisie suit l'article
- * jusqu'à la commande (visible côté vendeur dans le Dashboard et l'export).
+ * sélecteur de taille / pointure + bouton quantité / ajout au panier.
+ * Les choix suivent l'article jusqu'à la commande (Dashboard + export Excel).
  */
 export default function PurchasePanel({
   product,
   colors,
+  sizes,
 }: {
   product: AddableProduct;
   colors: ProductColor[];
+  sizes: string[];
 }) {
   const [selected, setSelected] = useState<string | null>(null);
+  const [selectedSize, setSelectedSize] = useState<string | null>(null);
 
   return (
     <div className="space-y-5">
@@ -59,7 +62,38 @@ export default function PurchasePanel({
         </fieldset>
       )}
 
-      <AddToCart withQuantity product={product} color={selected} />
+      {sizes.length > 0 && (
+        <fieldset>
+          <legend className="text-sm font-semibold text-gray-700">
+            📏 Taille / Pointure{" "}
+            <span className="font-normal text-gray-400">
+              {selectedSize ? `: ${selectedSize}` : "— choisissez (optionnel)"}
+            </span>
+          </legend>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {sizes.map((sz) => {
+              const active = selectedSize === sz;
+              return (
+                <button
+                  key={sz}
+                  type="button"
+                  onClick={() => setSelectedSize(active ? null : sz)}
+                  aria-pressed={active}
+                  className={`min-w-11 rounded-xl border px-3 py-2 text-sm font-bold transition ${
+                    active
+                      ? "border-brand-600 bg-brand-600 text-white shadow-sm"
+                      : "border-gray-200 bg-white text-gray-700 hover:border-brand-300 hover:bg-brand-50"
+                  }`}
+                >
+                  {sz}
+                </button>
+              );
+            })}
+          </div>
+        </fieldset>
+      )}
+
+      <AddToCart withQuantity product={product} color={selected} size={selectedSize} />
     </div>
   );
 }

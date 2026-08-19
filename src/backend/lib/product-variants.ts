@@ -13,6 +13,8 @@
 export const MAX_GALLERY = 5; // photos supplémentaires (≠ photo principale)
 export const MAX_COLORS = 8; // options de couleur par produit
 export const MAX_COLOR_NAME = 30;
+export const MAX_SIZES = 15; // tailles / pointures par produit
+export const MAX_SIZE_LABEL = 10; // caractères par étiquette (ex. "XXL", "44")
 
 /** Couleur proposée à la vente. hex toujours en #RRGGBB (null si non précisé). */
 export interface ProductColor {
@@ -68,6 +70,25 @@ export function serializeGallery(list: string[]): string {
 }
 export function serializeColors(list: ProductColor[]): string {
   return list.length > 0 ? JSON.stringify(list.slice(0, MAX_COLORS)) : "";
+}
+
+/** Tailles / pointures d'un produit (étiquettes texte courtes). Jamais d'exception. */
+export function parseSizes(raw: string | null | undefined): string[] {
+  if (!raw) return [];
+  try {
+    const v: unknown = JSON.parse(raw);
+    if (!Array.isArray(v)) return [];
+    return v
+      .filter((x): x is string => typeof x === "string")
+      .map((x) => x.trim())
+      .filter((x) => x !== "" && x.length <= MAX_SIZE_LABEL)
+      .slice(0, MAX_SIZES);
+  } catch {
+    return [];
+  }
+}
+export function serializeSizes(list: string[]): string {
+  return list.length > 0 ? JSON.stringify(list.slice(0, MAX_SIZES)) : "";
 }
 
 /** Liste d'affichage complète : photo principale d'abord, puis la galerie (dédoublonnée). */

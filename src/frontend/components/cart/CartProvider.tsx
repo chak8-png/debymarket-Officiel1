@@ -20,6 +20,8 @@ export interface CartItem {
   imageUrl?: string | null;
   /** Couleur choisie sur la fiche produit (null = non précisée). */
   color?: string | null;
+  /** Taille / pointure choisie (transmise à la commande). */
+  size?: string | null;
   quantity: number;
 }
 
@@ -33,9 +35,9 @@ export interface AddableProduct {
   imageUrl?: string | null;
 }
 
-/** Clé unique d'une ligne panier : même produit mais couleurs différentes = 2 lignes. */
-export const itemKey = (i: Pick<CartItem, "id" | "color">): string =>
-  `${i.id}|${i.color ?? ""}`;
+/** Clé unique d'une ligne panier : produit × couleur × taille. */
+export const itemKey = (i: Pick<CartItem, "id" | "color" | "size">): string =>
+  `${i.id}|${i.color ?? ""}|${i.size ?? ""}`;
 
 interface CartContextValue {
   items: CartItem[];
@@ -44,7 +46,12 @@ interface CartContextValue {
   deliveryFee: number;
   total: number;
   isOpen: boolean;
-  addItem: (product: AddableProduct, quantity?: number, color?: string | null) => void;
+  addItem: (
+    product: AddableProduct,
+    quantity?: number,
+    color?: string | null,
+    size?: string | null
+  ) => void;
   removeItem: (key: string) => void;
   setQuantity: (key: string, quantity: number) => void;
   clear: () => void;
@@ -78,9 +85,14 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }, [items, hydrated]);
 
   const value = useMemo<CartContextValue>(() => {
-    const addItem: CartContextValue["addItem"] = (product, quantity = 1, color = null) =>
+    const addItem: CartContextValue["addItem"] = (
+      product,
+      quantity = 1,
+      color = null,
+      size = null
+    ) =>
       setItems((prev) => {
-        const key = `${product.id}|${color ?? ""}`;
+        const key = `${product.id}|${color ?? ""}|${size ?? ""}`;
         const existing = prev.find((i) => itemKey(i) === key);
         if (existing) {
           return prev.map((i) =>
@@ -89,7 +101,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
               : i
           );
         }
-        return [...prev, { ...product, color, quantity }];
+        return [...prev, { ...product, color, size, quantity }];
       });
 
     const subtotal = items.reduce((s, i) => s + i.price * i.quantity, 0);

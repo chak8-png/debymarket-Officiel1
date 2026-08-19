@@ -51,6 +51,7 @@ const p = (
   description: "",
   gallery: "", // photos supplémentaires : tableau JSON texte ("" = aucune)
   colors: "", // couleurs proposées : tableau JSON texte ("" = aucune)
+  sizes: "", // tailles / pointures proposées : tableau JSON texte ("" = aucune)
   oldPrice: null,
   stock: 25,
   rating: 4,
@@ -74,9 +75,11 @@ export const PRODUCTS: Product[] = [
     gallery: '["/images/products/chemise-polo-2.jpg","/images/products/chemise-polo-3.jpg"]',
     colors:
       '[{"name":"Blanc","hex":"#f8fafc"},{"name":"Bleu ciel","hex":"#7dd3fc"},{"name":"Noir","hex":"#111827"}]',
+    sizes: '["S","M","L","XL","XXL"]',
   }),
   p(2, "polo-homme-coton", "Polo homme 100% coton", 6500, 3, "⛳", {
-    description: "Polo piqué respirant, col boutonné. Disponible en plusieurs coloris.",
+    description: "Polo piqué respirant, col boutonné.",
+    sizes: '["S","M","L","XL","XXL"]',
   }),
   p(27, "chemise-homme-rayee-manches-longues", "Chemise rayée manches longues", 7500, 3, "👔", {
     description: "Chemise à fines rayures, tissu anti-froissage, parfaite pour le bureau.",
@@ -229,6 +232,7 @@ export const PRODUCTS: Product[] = [
     rating: 5,
     isFeatured: true,
     colors: '[{"name":"Noir","hex":"#111827"},{"name":"Marron","hex":"#78350f"}]',
+    sizes: '["39","40","41","42","43","44","45"]',
   }),
 
   // ══════════════════════════════════════════════════════════════════
@@ -409,16 +413,20 @@ export const PRODUCTS: Product[] = [
   p(87, "mocassins-cuir-homme", "Mocassins en cuir homme", 25000, 22, "👞", {
     description: "Cuir véritable souple, semelle cousue main — habillé ou décontracté.",
     rating: 5,
+     sizes: '["39","40","41","42","43","44","45"]',
   }),
   p(88, "baskets-urbaines-homme", "Baskets urbaines homme", 20000, 22, "👟", {
     description: "Baskets confortables à semelle épaisse amortissante, esprit streetwear.",
+     sizes: '["39","40","41","42","43","44","45"]',
   }),
   p(89, "derbies-cuir-homme", "Derbies en cuir homme", 30000, 22, "👞", {
     description: "Derbies élégantes en cuir pleine fleur — bureau, cérémonies, grandes occasions.",
     rating: 5,
+     sizes: '["39","40","41","42","43","44","45"]',
   }),
   p(90, "sandales-cuir-homme", "Sandales en cuir homme", 12000, 22, "🩴", {
     description: "Sandales en cuir robuste, brides ajustables, confort au quotidien.",
+     sizes: '["39","40","41","42","43","44","45"]',
   }),
 
   // ══════════════════════════════════════════════════════════════════

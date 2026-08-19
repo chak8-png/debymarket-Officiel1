@@ -10,6 +10,7 @@ import { getDescendantIds } from "./categories";
 import {
   serializeGallery,
   serializeColors,
+  serializeSizes,
   type ProductColor,
 } from "./product-variants";
 
@@ -189,6 +190,7 @@ export interface ProductInput {
   imageUrl: string | null; // photo principale : /images/..., https://... ou data:image/...
   gallery: string[]; // photos supplémentaires (ordre conservé, 5 max)
   colors: ProductColor[]; // couleurs proposées (8 max)
+  sizes: string[]; // tailles / pointures proposées (15 max)
   isFeatured: boolean;
   isActive: boolean;
 }
@@ -223,7 +225,7 @@ export async function createProduct(
   const slug = await uniqueSlug(slugify(input.name));
   const stock = Math.max(0, Math.floor(input.stock ?? 0));
   // Tableaux (galerie/couleurs) → JSON texte pour la colonne TEXT ("" si vide)
-  const { gallery, colors, ...rest } = input;
+  const { gallery, colors, sizes, ...rest } = input;
   const row = {
     ...rest,
     slug,
@@ -232,6 +234,7 @@ export async function createProduct(
     rating: 4,
     gallery: serializeGallery(gallery),
     colors: serializeColors(colors),
+    sizes: serializeSizes(sizes),
   };
   if (db) {
     try {
@@ -256,11 +259,12 @@ export async function updateProduct(
   id: number,
   patch: Partial<ProductInput>
 ): Promise<boolean> {
-  const { gallery, colors, ...rest } = patch;
-  const row: Omit<typeof rest, "gallery" | "colors"> &
-    Partial<Pick<Product, "gallery" | "colors">> = { ...rest };
+  const { gallery, colors, sizes, ...rest } = patch;
+  const row: Omit<typeof rest, "gallery" | "colors" | "sizes"> &
+    Partial<Pick<Product, "gallery" | "colors" | "sizes">> = { ...rest };
   if (gallery !== undefined) row.gallery = serializeGallery(gallery);
   if (colors !== undefined) row.colors = serializeColors(colors);
+  if (sizes !== undefined) row.sizes = serializeSizes(sizes);
   if (db) {
     try {
       const rows = await db

@@ -7,7 +7,7 @@ import { orders, orderItems } from "../db/schema";
 import { getProductsByIds, decrementStock } from "../lib/products";
 import { deliveryFeeFor } from "../lib/constants";
 import { generateReference } from "../lib/format";
-import { parseColors } from "../lib/product-variants";
+import { parseColors, parseSizes } from "../lib/product-variants";
 import type { OrderStatus } from "../lib/constants";
 
 // ---------------------------------------------------------------------------
@@ -18,6 +18,8 @@ export interface CheckoutItemInput {
   quantity: number;
   /** Couleur choisie par le client — validée CONTRE la liste du produit. */
   color?: string;
+  /** Taille / pointure choisie — validée CONTRE la liste du produit. */
+  size?: string;
 }
 
 export interface CheckoutInput {
@@ -44,6 +46,7 @@ export interface StoredOrderItem {
   quantity: number;
   unitPrice: number;
   variant: string | null; // couleur choisie (snapshot)
+  size: string | null; // taille / pointure choisie (snapshot)
 }
 
 export interface StoredOrder {
@@ -145,12 +148,29 @@ export async function createOrder(input: CheckoutInput): Promise<CreateOrderResu
       variant = match.name;
     }
 
+    // 📏 Taille / pointure : même règle — uniquement une valeur de la liste.
+    let size: string | null = null;
+    if (typeof item.size === "string" && item.size.trim() !== "") {
+      const wanted = stripControlChars(item.size).trim().slice(0, 20);
+      const knownSizes = parseSizes(product.sizes);
+      const matchSize = knownSizes.find(
+        (x) => x.localeCompare(wanted, "fr", { sensitivity: "base" }) === 0
+      );
+      if (!matchSize)
+        return {
+          ok: false,
+          error: `Taille invalide pour « ${product.name} » — veuillez la choisir dans la liste.`,
+        };
+      size = matchSize;
+    }
+
     lines.push({
       productId: product.id,
       name: product.name,
       quantity,
       unitPrice: product.price,
       variant,
+      size,
     });
   }
 
@@ -182,7 +202,14 @@ export async function createOrder(input: CheckoutInput): Promise<CreateOrderResu
       // colonne variant NOT NULL : null (pas de couleur) → chaîne vide
       await db
         .insert(orderItems)
-        .values(lines.map((l) => ({ orderId, ...l, variant: l.variant ?? "" })));
+        .values(
+          lines.map((l) => ({
+            orderId,
+            ...l,
+            variant: l.variant ?? "",
+            size: l.size ?? "",
+          }))
+        );
       // Le stock diminue dès que la commande est validée
       await decrementStock(lines.map((l) => ({ productId: l.productId, quantity: l.quantity })));
       return { ok: true, reference, total };
@@ -228,12 +255,13 @@ export async function listOrders(): Promise<StoredOrder[]> {
         ...r,
         items: items
           .filter((i) => i.orderId === r.id)
-          .map(({ productId, name, quantity, unitPrice, variant }) => ({
+          .map(({ productId, name, quantity, unitPrice, variant, size }) => ({
             productId,
             name,
             quantity,
             unitPrice,
             variant: variant || null,
+            size: size || null,
           })),
       }));
     } catch (error) {
@@ -245,7 +273,11 @@ export async function listOrders(): Promise<StoredOrder[]> {
   return listDemoOrders().map((o) => ({
     ...o,
     createdAt: new Date(o.createdAt),
-    items: o.items.map((i) => ({ ...i, variant: i.variant ?? null })),
+    items: o.items.map((i) => ({
+      ...i,
+      variant: i.variant ?? null,
+      size: i.size ?? null,
+    })),
   }));
 }
 
