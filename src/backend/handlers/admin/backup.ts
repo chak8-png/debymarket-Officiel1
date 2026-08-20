@@ -7,8 +7,18 @@ import { NextResponse } from "next/server";
 import { fetchProducts } from "@/backend/lib/products";
 import { listOrders } from "@/backend/services/orders";
 import { getSettings, HOME_IMAGE_KEYS } from "@/backend/lib/settings";
+import { db, DemoWriteForbiddenError } from "@/backend/db";
+import { demoWriteGuardResponse } from "@/backend/lib/http-guards";
 
 export async function GET() {
+  // En production SANS base (mode démo), une « sauvegarde » ne contiendrait
+  // que les produits d'exemple : DANGER si on la restaure ensuite par-dessus
+  // le vrai catalogue. → Refusée avec un message clair (l'écran de santé
+  // /api/health permet de vérifier que la base est bien de retour).
+  if (!db && process.env.NODE_ENV === "production") {
+    const guard = demoWriteGuardResponse(new DemoWriteForbiddenError());
+    if (guard) return guard;
+  }
   const [products, orders, settings] = await Promise.all([
     fetchProducts({ includeInactive: true, limit: 100_000 }),
     listOrders(),

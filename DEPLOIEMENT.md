@@ -132,3 +132,55 @@ lieu du vrai catalogue :
 Le site réessaie désormais automatiquement la connexion (réveil Neon),
 refuse toute écriture tant que la base est injoignable (plus de perte de
 données), et `/api/health` indique le mode en temps réel (`persistant`).
+
+---
+
+## 🔄 Migration Neon → Render Postgres + passage au pack payant (~7 800 F/mois)
+
+> **Objectif** : base de données chez Render (Basic-256 MB, ~3 600 F/mois, toujours
+> réveillée, même datacenter que le site) + site en plan Starter (~4 200 F/mois,
+> plus de sieste de 15 min). Migration des produits/commandes SANS ligne de
+> commande, grâce aux boutons 💾 Sauvegarde / 📥 Restaurer du dashboard.
+
+### 0. Prérequis — récupérer les vraies données AVANT tout changement
+1. S'assurer que `DATABASE_URL` pointe encore vers **Neon** et que le site
+   affiche les vrais produits (sinon corriger la variable d'abord).
+2. Dashboard `/admin` → **💾 Sauvegarde du site** → garder le fichier
+   `debymarket-sauvegarde-AAAA-MM-JJ.json` précieusement.
+   *(Si Neon est suspendu pour quota épuisé : soit passer Neon en payant le
+   temps de faire la sauvegarde, soit ressaisir les produits plus tard.)*
+
+### 1. Déployer la version avec la fonction Restaurer
+Pousser le code ≥ commit « restauration » (Render déploie automatiquement).
+
+### 2. Créer la base chez Render
+1. Dashboard Render → **New +** → **PostgreSQL**
+2. **Name** : `debymarket-db` — **Region** : **Frankfurt (EU Central)**
+   ⚠️ LA MÊME région que le service web (latence minimale, URL interne)
+3. **Instance Type** : **Basic-256 MB** (~6 $/mois) → **Create**
+4. Attendre *Status: Available* → copier l'**Internal Database URL**
+   (commence par `postgresql://`, hôte interne `dpg-…-a`).
+
+### 3. Brancher le site sur la nouvelle base
+1. Service web → **Environment** → `DATABASE_URL` = Internal Database URL
+2. **Save Changes** (redéploiement automatique)
+3. Initialiser la structure (PowerShell) :
+   `curl.exe -X POST "https://debymarket.com/api/seed?tables=1" -H "x-seed-secret: MOT_DE_PASSE_ADMIN"`
+   → réponse attendue : `{"ok":true,"tablesOnly":true}`
+
+### 4. Restaurer les données
+`/admin` → **📥 Restaurer** → choisir le fichier JSON de l'étape 0 →
+confirmer (⚠️ remplace tout) → message « Restauration réussie » → la page
+se recharge avec les produits et commandes d'avant. ✅
+
+### 5. Passer le site en Starter (plus de sieste)
+Service → **Settings** → **Instance Type** → **Starter** (~7 $/mois).
+
+### 6. Vérifications finales
+- `https://debymarket.com/api/health` → `"persistant":true`
+- Catalogue = vrais produits, commandes présentes dans /admin
+- Boutique : chargement instantané (plus d'écran de réveil) ⚡
+
+### 7. Côté Neon
+Le projet peut être laissé en pause (gratuit) — il sert de sauvegarde froide
+le temps d'être sûr que tout roule chez Render.

@@ -25,6 +25,7 @@ import ProductEditor from "@/frontend/components/admin/ProductEditor";
 import LogoutButton from "@/frontend/components/admin/LogoutButton";
 import ProductDeleteButton from "@/frontend/components/admin/ProductDeleteButton";
 import DbStatusBanner from "@/frontend/components/admin/DbStatusBanner";
+import RestoreButton from "@/frontend/components/admin/RestoreButton";
 
 /** Catégories feuilles (niveau le plus fin) d'un univers donné. */
 function leafCategories(root: Category): Category[] {
@@ -153,6 +154,7 @@ export default async function DashboardView() {
             >
               💾 Sauvegarde du site
             </a>
+            <RestoreButton />
           </div>
         </div>
         {orders.length === 0 ? (
