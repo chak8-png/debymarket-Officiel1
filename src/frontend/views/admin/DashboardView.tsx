@@ -24,6 +24,7 @@ import StockControl from "@/frontend/components/admin/StockControl";
 import ProductEditor from "@/frontend/components/admin/ProductEditor";
 import LogoutButton from "@/frontend/components/admin/LogoutButton";
 import ProductDeleteButton from "@/frontend/components/admin/ProductDeleteButton";
+import DbStatusBanner from "@/frontend/components/admin/DbStatusBanner";
 
 /** Catégories feuilles (niveau le plus fin) d'un univers donné. */
 function leafCategories(root: Category): Category[] {
@@ -78,6 +79,7 @@ export default async function DashboardView() {
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-10">
+      <DbStatusBanner />
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="font-display text-3xl font-semibold tracking-tight">
           📊 Tableau de bord

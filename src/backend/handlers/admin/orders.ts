@@ -2,7 +2,7 @@
 import { NextResponse } from "next/server";
 import { updateOrderStatus } from "@/backend/services/orders";
 import { ORDER_STATUSES, type OrderStatus } from "@/backend/lib/constants";
-import { readJsonBody, BodyTooLargeError } from "@/backend/lib/http-guards";
+import { readJsonBody, BodyTooLargeError, demoWriteGuardResponse } from "@/backend/lib/http-guards";
 
 export async function PATCH(
   req: Request,
@@ -37,7 +37,15 @@ export async function PATCH(
     );
   }
 
-  const ok = await updateOrderStatus(id, status);
+  let ok: boolean;
+  try {
+    ok = await updateOrderStatus(id, status);
+  } catch (e) {
+    // Mode démo en production : on REFUSE l'écriture (effet non persistant).
+    const guard = demoWriteGuardResponse(e);
+    if (guard) return guard;
+    throw e;
+  }
   return NextResponse.json(
     ok ? { ok: true } : { ok: false, error: "Commande introuvable." },
     { status: ok ? 200 : 404 }

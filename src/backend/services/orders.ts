@@ -2,7 +2,7 @@
 // Paiement à la livraison : aucune transaction en ligne, le livreur encaisse.
 import "server-only";
 import { desc, eq, inArray } from "drizzle-orm";
-import { db } from "../db";
+import { db, withDbRetry, assertPersistentWrite } from "../db";
 import { orders, orderItems } from "../db/schema";
 import { getProductsByIds, decrementStock } from "../lib/products";
 import { deliveryFeeFor } from "../lib/constants";
@@ -180,36 +180,41 @@ export async function createOrder(input: CheckoutInput): Promise<CreateOrderResu
   const reference = generateReference();
 
   // 3. Persistance : PostgreSQL si configurée, sinon mémoire (démo)
-  if (db) {
+  const database = db;
+  if (database) {
     try {
-      const inserted = await db
-        .insert(orders)
-        .values({
-          reference,
-          customerName,
-          phone,
-          city,
-          address,
-          status: "pending",
-          paymentMethod: "cash_on_delivery",
-          paymentStatus: "to_pay_on_delivery",
-          subtotal,
-          deliveryFee,
-          total,
-        })
-        .returning({ id: orders.id });
+      const inserted = await withDbRetry(() =>
+        database
+          .insert(orders)
+          .values({
+            reference,
+            customerName,
+            phone,
+            city,
+            address,
+            status: "pending",
+            paymentMethod: "cash_on_delivery",
+            paymentStatus: "to_pay_on_delivery",
+            subtotal,
+            deliveryFee,
+            total,
+          })
+          .returning({ id: orders.id })
+      );
       const orderId = inserted[0].id;
       // colonne variant NOT NULL : null (pas de couleur) → chaîne vide
-      await db
-        .insert(orderItems)
-        .values(
-          lines.map((l) => ({
-            orderId,
-            ...l,
-            variant: l.variant ?? "",
-            size: l.size ?? "",
-          }))
-        );
+      await withDbRetry(() =>
+        database
+          .insert(orderItems)
+          .values(
+            lines.map((l) => ({
+              orderId,
+              ...l,
+              variant: l.variant ?? "",
+              size: l.size ?? "",
+            }))
+          )
+      );
       // Le stock diminue dès que la commande est validée
       await decrementStock(lines.map((l) => ({ productId: l.productId, quantity: l.quantity })));
       return { ok: true, reference, total };
@@ -219,7 +224,11 @@ export async function createOrder(input: CheckoutInput): Promise<CreateOrderResu
     }
   }
 
-  // Mode démo (fichier JSON) : le stock diminue aussi
+  // Mode démo (fichier JSON) : le stock diminue aussi.
+  // En production, une commande enregistrée ici DISPARAÎTRAIT au prochain
+  // redémarrage de l'hébergeur → on REFUSE (mieux vaut une erreur visible
+  // qu'une commande client perdue : le client est invité à rappeler/WhatsApp).
+  assertPersistentWrite();
   await decrementStock(lines.map((l) => ({ productId: l.productId, quantity: l.quantity })));
   pushDemoOrder({
     reference,
@@ -243,14 +252,19 @@ export async function createOrder(input: CheckoutInput): Promise<CreateOrderResu
 // Lecture / mise à jour (dashboard admin)
 // ---------------------------------------------------------------------------
 export async function listOrders(): Promise<StoredOrder[]> {
-  if (db) {
+  const database = db;
+  if (database) {
     try {
-      const rows = await db.select().from(orders).orderBy(desc(orders.createdAt));
+      const rows = await withDbRetry(() =>
+        database.select().from(orders).orderBy(desc(orders.createdAt))
+      );
       if (rows.length === 0) return [];
-      const items = await db
-        .select()
-        .from(orderItems)
-        .where(inArray(orderItems.orderId, rows.map((r) => r.id)));
+      const items = await withDbRetry(() =>
+        database
+          .select()
+          .from(orderItems)
+          .where(inArray(orderItems.orderId, rows.map((r) => r.id)))
+      );
       return rows.map((r) => ({
         ...r,
         items: items
@@ -294,15 +308,17 @@ export async function updateOrderStatus(
         : undefined;
   const patch = paymentStatus ? { status, paymentStatus } : { status };
 
-  if (db) {
+  const database = db;
+  if (database) {
     try {
-      await db.update(orders).set(patch).where(eq(orders.id, id));
+      await withDbRetry(() => database.update(orders).set(patch).where(eq(orders.id, id)));
       return true;
     } catch (error) {
       console.error("[orders] Erreur mise à jour :", error);
       return false;
     }
   }
+  assertPersistentWrite(); // production : jamais d'écriture démo éphémère
   return updateDemoOrder(id, {
     status,
     ...(paymentStatus ? { paymentStatus } : {}),

@@ -34,3 +34,30 @@ export async function readJsonBody<T>(
 }
 
 export { BodyTooLargeError };
+
+/**
+ * Réponse 503 à renvoyer quand une écriture a été REFUSÉE par le garde-fou
+ * anti-mode-démo (base de données injoignable en production). Retourne null
+ * si l'erreur est d'une autre nature (à gérer/relancer par l'appelant).
+ *
+ * server-only est déjà importé en tête de fichier ; les imports ci-dessous
+ * sont hissés au niveau du module par le compilateur.
+ */
+import { NextResponse } from "next/server";
+import { DemoWriteForbiddenError } from "../db";
+
+export function demoWriteGuardResponse(
+  error: unknown,
+  customMessage?: string
+): NextResponse | null {
+  if (!(error instanceof DemoWriteForbiddenError)) return null;
+  return NextResponse.json(
+    {
+      ok: false,
+      error:
+        customMessage ??
+        "Base de données momentanément injoignable : RIEN n'a été enregistré. Réessayez dans une minute ; si le message persiste, prévenez votre développeur.",
+    },
+    { status: 503 }
+  );
+}

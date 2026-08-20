@@ -2,7 +2,7 @@
 // Avec DATABASE_URL : lit PostgreSQL via Drizzle. Sinon : données de démo.
 import "server-only";
 import { desc, eq, inArray, sql } from "drizzle-orm";
-import { db } from "../db";
+import { db, withDbRetry, assertPersistentWrite } from "../db";
 import { products } from "../db/schema";
 import type { Product } from "../db/schema";
 import { PRODUCTS } from "./seed-data";
@@ -78,9 +78,11 @@ function applyFilters(list: Product[], q: ProductQuery): Product[] {
 
 /** Tous les produits (source : DB si configurée, sinon démo), avant filtres. */
 async function loadAll(): Promise<Product[]> {
-  if (db) {
+  const database = db;
+  if (database) {
     try {
-      return await db.select().from(products);
+      // Réessais : la base gratuite se « réveille » parfois en ~1 s
+      return await withDbRetry(() => database.select().from(products));
     } catch (error) {
       console.error("[products] Erreur DB, bascule sur les données démo :", error);
     }
@@ -95,13 +97,16 @@ export async function fetchProducts(q: ProductQuery = {}): Promise<Product[]> {
 export async function fetchProductBySlug(
   slug: string
 ): Promise<Product | undefined> {
-  if (db) {
+  const database = db;
+  if (database) {
     try {
-      const rows = await db
-        .select()
-        .from(products)
-        .where(eq(products.slug, slug))
-        .limit(1);
+      const rows = await withDbRetry(() =>
+        database
+          .select()
+          .from(products)
+          .where(eq(products.slug, slug))
+          .limit(1)
+      );
       if (rows[0]) return rows[0];
     } catch (error) {
       console.error("[products] Erreur DB, bascule sur les données démo :", error);
@@ -128,19 +133,23 @@ export async function updateProductStock(
   stock: number
 ): Promise<boolean> {
   const value = Math.max(0, Math.floor(stock));
-  if (db) {
+  const database = db;
+  if (database) {
     try {
-      const rows = await db
-        .update(products)
-        .set({ stock: value })
-        .where(eq(products.id, id))
-        .returning({ id: products.id });
+      const rows = await withDbRetry(() =>
+        database
+          .update(products)
+          .set({ stock: value })
+          .where(eq(products.id, id))
+          .returning({ id: products.id })
+      );
       return rows.length > 0;
     } catch (error) {
       console.error("[products] Erreur mise à jour stock :", error);
       return false;
     }
   }
+  assertPersistentWrite(); // production : jamais d'écriture démo éphémère
   const exists = demoProducts().some((p) => p.id === id);
   if (!exists) return false;
   setDemoStock(id, value);
@@ -154,12 +163,14 @@ export async function decrementStock(
   const database = db;
   if (database) {
     try {
-      await Promise.all(
-        items.map((i) =>
-          database
-            .update(products)
-            .set({ stock: sql`GREATEST(0, ${products.stock} - ${i.quantity})` })
-            .where(eq(products.id, i.productId))
+      await withDbRetry(() =>
+        Promise.all(
+          items.map((i) =>
+            database
+              .update(products)
+              .set({ stock: sql`GREATEST(0, ${products.stock} - ${i.quantity})` })
+              .where(eq(products.id, i.productId))
+          )
         )
       );
       return;
@@ -168,6 +179,7 @@ export async function decrementStock(
       return;
     }
   }
+  assertPersistentWrite(); // production : jamais d'écriture démo éphémère
   decrementDemoStock(items, (id) => {
     const p = getDemoCatalog(PRODUCTS).find((x) => x.id === id);
     // valeur courante (seed ou surcharge déjà enregistrée)
@@ -236,15 +248,19 @@ export async function createProduct(
     colors: serializeColors(colors),
     sizes: serializeSizes(sizes),
   };
-  if (db) {
+  const database = db;
+  if (database) {
     try {
-      const rows = await db.insert(products).values(row).returning();
+      const rows = await withDbRetry(() =>
+        database.insert(products).values(row).returning()
+      );
       return rows[0] ?? null;
     } catch (error) {
       console.error("[products] Erreur création produit :", error);
       return null;
     }
   }
+  assertPersistentWrite(); // production : jamais de création qui s'évapore
   const product: Product = {
     id: nextDemoProductId(PRODUCTS),
     ...row,
@@ -265,19 +281,23 @@ export async function updateProduct(
   if (gallery !== undefined) row.gallery = serializeGallery(gallery);
   if (colors !== undefined) row.colors = serializeColors(colors);
   if (sizes !== undefined) row.sizes = serializeSizes(sizes);
-  if (db) {
+  const database = db;
+  if (database) {
     try {
-      const rows = await db
-        .update(products)
-        .set(row)
-        .where(eq(products.id, id))
-        .returning({ id: products.id });
+      const rows = await withDbRetry(() =>
+        database
+          .update(products)
+          .set(row)
+          .where(eq(products.id, id))
+          .returning({ id: products.id })
+      );
       return rows.length > 0;
     } catch (error) {
       console.error("[products] Erreur mise à jour produit :", error);
       return false;
     }
   }
+  assertPersistentWrite(); // production : jamais d'édition qui s'évapore
   const catalog = getDemoCatalog(PRODUCTS);
   const current = catalog.find((p) => p.id === id);
   if (!current) return false;
@@ -287,27 +307,34 @@ export async function updateProduct(
 
 /** Supprime définitivement un produit. */
 export async function deleteProduct(id: number): Promise<boolean> {
-  if (db) {
+  const database = db;
+  if (database) {
     try {
-      const rows = await db
-        .delete(products)
-        .where(eq(products.id, id))
-        .returning({ id: products.id });
+      const rows = await withDbRetry(() =>
+        database
+          .delete(products)
+          .where(eq(products.id, id))
+          .returning({ id: products.id })
+      );
       return rows.length > 0;
     } catch (error) {
       console.error("[products] Erreur suppression produit :", error);
       return false;
     }
   }
+  assertPersistentWrite(); // production : jamais d'écriture démo éphémère
   return deleteDemoProduct(PRODUCTS, id);
 }
 
 /** Produits par ids — utilisé par /api/checkout pour recalculer les prix côté serveur. */
 export async function getProductsByIds(ids: number[]): Promise<Product[]> {
   if (ids.length === 0) return [];
-  if (db) {
+  const database = db;
+  if (database) {
     try {
-      return await db.select().from(products).where(inArray(products.id, ids));
+      return await withDbRetry(() =>
+        database.select().from(products).where(inArray(products.id, ids))
+      );
     } catch (error) {
       console.error("[products] Erreur DB, bascule sur les données démo :", error);
     }

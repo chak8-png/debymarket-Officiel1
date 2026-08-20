@@ -3,7 +3,7 @@
 import { NextResponse } from "next/server";
 import { createOrder, type CheckoutInput } from "@/backend/services/orders";
 import { rateLimitHit } from "@/backend/lib/rate-limit";
-import { getClientIp, readJsonBody, BodyTooLargeError } from "@/backend/lib/http-guards";
+import { getClientIp, readJsonBody, BodyTooLargeError, demoWriteGuardResponse } from "@/backend/lib/http-guards";
 
 export async function POST(req: Request) {
   const gate = rateLimitHit(`checkout:${getClientIp(req)}`, 10, 60_000);
@@ -33,7 +33,19 @@ export async function POST(req: Request) {
     );
   }
 
-  const result = await createOrder(body);
+  let result: Awaited<ReturnType<typeof createOrder>>;
+  try {
+    result = await createOrder(body);
+  } catch (e) {
+    // Boutique temporairement en mode démo (base injoignable) : la commande
+    // est REFUSÉE proprement plutôt qu'enregistrée dans un fichier éphémère.
+    const guard = demoWriteGuardResponse(
+      e,
+      "Souci technique temporaire : votre commande n'a PAS été enregistrée. Réessayez dans une minute, ou commandez directement sur WhatsApp au 07 03 13 45 82."
+    );
+    if (guard) return guard;
+    throw e;
+  }
   if (!result.ok) {
     return NextResponse.json(result, { status: 400 });
   }

@@ -11,7 +11,7 @@ import {
   type ProductInput,
 } from "@/backend/lib/products";
 import { getCategoryById, getChildren } from "@/backend/lib/categories";
-import { readJsonBody, BodyTooLargeError } from "@/backend/lib/http-guards";
+import { readJsonBody, BodyTooLargeError, demoWriteGuardResponse } from "@/backend/lib/http-guards";
 import {
   MAX_GALLERY,
   MAX_COLORS,
@@ -203,7 +203,15 @@ export async function POST(req: Request) {
     stock: cleanStock(body.stock) ?? 0,
   };
 
-  const product = await createProduct(input);
+  let product: Awaited<ReturnType<typeof createProduct>>;
+  try {
+    product = await createProduct(input);
+  } catch (e) {
+    // Mode démo en production : on REFUSE l'écriture (elle serait perdue).
+    const guard = demoWriteGuardResponse(e);
+    if (guard) return guard;
+    throw e;
+  }
   if (!product) {
     return NextResponse.json(
       {
@@ -307,21 +315,28 @@ export async function PATCH(
     );
   }
 
-  if (Object.keys(details).length > 0) {
-    const ok = await updateProduct(id, details);
-    if (!ok)
-      return NextResponse.json(
-        { ok: false, error: "Produit introuvable." },
-        { status: 404 }
-      );
-  }
-  if (hasStock && stock !== null) {
-    const ok = await updateProductStock(id, stock);
-    if (!ok)
-      return NextResponse.json(
-        { ok: false, error: "Produit introuvable." },
-        { status: 404 }
-      );
+  try {
+    if (Object.keys(details).length > 0) {
+      const ok = await updateProduct(id, details);
+      if (!ok)
+        return NextResponse.json(
+          { ok: false, error: "Produit introuvable." },
+          { status: 404 }
+        );
+    }
+    if (hasStock && stock !== null) {
+      const ok = await updateProductStock(id, stock);
+      if (!ok)
+        return NextResponse.json(
+          { ok: false, error: "Produit introuvable." },
+          { status: 404 }
+        );
+    }
+  } catch (e) {
+    // Mode démo en production : on REFUSE l'écriture (elle serait perdue).
+    const guard = demoWriteGuardResponse(e);
+    if (guard) return guard;
+    throw e;
   }
 
   return NextResponse.json({ ok: true });
@@ -342,7 +357,15 @@ export async function DELETE(
     );
   }
 
-  const ok = await deleteProduct(id);
+  let ok: boolean;
+  try {
+    ok = await deleteProduct(id);
+  } catch (e) {
+    // Mode démo en production : on REFUSE l'écriture (effet non persistant).
+    const guard = demoWriteGuardResponse(e);
+    if (guard) return guard;
+    throw e;
+  }
   return NextResponse.json(
     ok ? { ok: true } : { ok: false, error: "Produit introuvable." },
     { status: ok ? 200 : 404 }

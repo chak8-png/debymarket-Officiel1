@@ -9,7 +9,7 @@ import {
   isAllowedSettingKey,
   setSetting,
 } from "@/backend/lib/settings";
-import { readJsonBody, BodyTooLargeError } from "@/backend/lib/http-guards";
+import { readJsonBody, BodyTooLargeError, demoWriteGuardResponse } from "@/backend/lib/http-guards";
 
 // Image acceptée : ~1 Mo max en base64 (≈ 750 Ko d'image JPEG) — après le
 // redimensionnement côté dashboard (max 1600 px) on reste bien en dessous.
@@ -65,7 +65,15 @@ export async function POST(req: Request) {
     );
   }
 
-  const done = await setSetting(key, value);
+  let done: boolean;
+  try {
+    done = await setSetting(key, value);
+  } catch (e) {
+    // Mode démo en production : on REFUSE l'écriture (effet non persistant).
+    const guard = demoWriteGuardResponse(e);
+    if (guard) return guard;
+    throw e;
+  }
   if (!done) {
     return NextResponse.json(
       { ok: false, error: "Écriture impossible — vérifiez la connexion à la base." },

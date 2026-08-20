@@ -113,3 +113,22 @@ Hobby : une boutique impose le plan **Pro (~20 $/mois/utilisateur)**.
 Si vous y allez quand même : mêmes variables d'environnement qu'à l'étape 3,
 utilisez de préférence la chaîne Neon **« Pooled connection »** (`-pooler`),
 le `netlify.toml` est simplement ignoré.
+
+---
+
+## ⚠️ Dépannage : la boutique affiche les produits « démo »
+
+Si le site montre soudain des produits d'exemple (chemise polo, awale…) au
+lieu du vrai catalogue :
+
+1. **Vérifier Neon** (console.neon.tech) : le projet est-il actif ?
+   L'offre gratuite s'endort après inactivité et a un quota mensuel
+   (~190 h de calcul) — voir l'onglet *Usage*.
+2. **Vérifier Render** → *Environment* : `DATABASE_URL` doit être la chaîne
+   exacte copiée depuis Neon (commence par `postgresql://`, contient
+   `neon.tech`). Une retouche accidentelle de cette variable = mode démo.
+3. Redémarrer le service (*Manual Deploy → Restart*).
+
+Le site réessaie désormais automatiquement la connexion (réveil Neon),
+refuse toute écriture tant que la base est injoignable (plus de perte de
+données), et `/api/health` indique le mode en temps réel (`persistant`).

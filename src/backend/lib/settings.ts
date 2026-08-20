@@ -3,7 +3,7 @@
 // Utilisé aujourd'hui pour personnaliser les images d'accueil depuis le dashboard.
 import "server-only";
 import { sql } from "drizzle-orm";
-import { db } from "../db";
+import { db, withDbRetry, assertPersistentWrite } from "../db";
 import { settings } from "../db/schema";
 import { getDemoSetting, setDemoSetting } from "./demo-store";
 
@@ -44,9 +44,10 @@ async function ensureSettingsTable(): Promise<void> {
 export async function getSettings(
   keys: readonly string[]
 ): Promise<Record<string, string>> {
-  if (db) {
+  const database = db;
+  if (database) {
     try {
-      const rows = await db.select().from(settings);
+      const rows = await withDbRetry(() => database.select().from(settings));
       const map: Record<string, string> = {};
       for (const r of rows) if (keys.includes(r.key)) map[r.key] = r.value;
       return map;
@@ -68,23 +69,27 @@ export async function setSetting(
   value: string | null
 ): Promise<boolean> {
   if (!isAllowedSettingKey(key)) return false;
-  if (db) {
+  const database = db;
+  if (database) {
     try {
-      await ensureSettingsTable();
-      if (value === null) {
-        await db.execute(sql`DELETE FROM settings WHERE key = ${key}`);
-      } else {
-        await db.execute(sql`
-          INSERT INTO settings (key, value) VALUES (${key}, ${value})
-          ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value
-        `);
-      }
+      await withDbRetry(async () => {
+        await ensureSettingsTable();
+        if (value === null) {
+          await database.execute(sql`DELETE FROM settings WHERE key = ${key}`);
+        } else {
+          await database.execute(sql`
+            INSERT INTO settings (key, value) VALUES (${key}, ${value})
+            ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value
+          `);
+        }
+      });
       return true;
     } catch (error) {
       console.error("[settings] Erreur écriture :", error);
       return false;
     }
   }
+  assertPersistentWrite(); // production : jamais d'écriture démo éphémère
   setDemoSetting(key, value);
   return true;
 }
