@@ -5,7 +5,7 @@
 // → aucune installation locale (Node/drizzle-kit) n'est nécessaire côté client.
 import { NextResponse } from "next/server";
 import { sql } from "drizzle-orm";
-import { db } from "@/backend/db";
+import { db, withDbRetry } from "@/backend/db";
 import { categories, products } from "@/backend/db/schema";
 import { CATEGORY_LIST } from "@/backend/lib/categories";
 import { createHash, timingSafeEqual } from "node:crypto";
@@ -167,7 +167,8 @@ export async function POST(req: Request) {
 
   try {
     // 1. Tables (créées automatiquement si la base est neuve)
-    await ensureTables();
+    //    Réessais : une base qui sort de veille peut échouer au 1er essai.
+    await withDbRetry(() => ensureTables());
 
     // 🆕 MODE « TABLES SEULES » (POST /api/seed?tables=1) : crée ou met à
     // niveau le SCHÉMA uniquement — AUCUN article de démonstration inséré.
@@ -195,8 +196,26 @@ export async function POST(req: Request) {
     });
   } catch (error) {
     console.error("[seed] Erreur :", error);
+    // Endpoint protégé par secret → on peut afficher la cause exacte de
+    // l'échec PostgreSQL (code + extrait) pour un diagnostic immédiat,
+    // sans exposer quoi que ce soit au public.
+    const e = error as { code?: string; message?: string } | null;
+    const code = typeof e?.code === "string" ? e.code : "?";
+    const raw = typeof e?.message === "string" ? e.message : "";
+    const msg = raw.toLowerCase();
+    let hint = "Erreur pendant le seed";
+    if (/(econnrefused|enotfound|etimedout|econnreset|timeout|timed out|terminated|no route)/.test(msg) || code.startsWith("08")) {
+      hint = "Base injoignable — vérifiez DATABASE_URL (URL INTERNE + même région que le site)";
+    } else if (code === "42501" || msg.includes("permission denied") || msg.includes("pas les droits")) {
+      hint = "Droits insuffisants sur la base (permission refusée)";
+    } else if (code === "28P01" || msg.includes("password authentication failed")) {
+      hint = "Mot de passe de la base refusé — recopiez l'URL complète depuis Render";
+    } else if (code === "3D000" || msg.includes("does not exist") && msg.includes("database")) {
+      hint = "La base nommée dans DATABASE_URL n'existe pas";
+    }
+    const detail = `${code} — ${raw.slice(0, 160)}`;
     return NextResponse.json(
-      { ok: false, error: "Erreur pendant le seed (voir logs serveur)." },
+      { ok: false, error: `${hint}. [détail : ${detail}]` },
       { status: 500 }
     );
   }
