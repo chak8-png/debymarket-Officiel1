@@ -1,0 +1,17 @@
+# 🤖 Dependabot — tient les dépendances à jour automatiquement.
+# Chaque semaine : une Pull Request par mise à jour importante (sécurité incl.).
+# Il suffit de cliquer « Merge » sur GitHub — puis Render/Netlify redéploient.
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "Africa/Abidjan"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+    # Les correctifs de sécurité sont proposés en priorité par GitHub
+    # (alertes Dependabot) indépendamment de cette planification.

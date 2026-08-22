@@ -1,0 +1,5 @@
+# Debymarket — politique de divulgation des vulnérabilités
+# Si vous découvrez une faille de sécurité, merci de nous la signaler :
+Contact: mailto:debymarketinfo@gmail.com
+Expires: 2027-12-31T23:59:00.000Z
+Preferred-Languages: fr
