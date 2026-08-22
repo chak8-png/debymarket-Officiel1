@@ -5,6 +5,7 @@
 // lien d'image https. « Rétablir » revient à l'image d'origine du site.
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import DotWave from "@/frontend/components/ui/DotWave";
 
 interface Slot {
   key: string; // clé de réglage côté serveur
@@ -292,7 +293,7 @@ export default function HomeImagesView() {
       </div>
 
       {!loaded ? (
-        <p className="mt-10 text-center text-sm text-gray-400">Chargement…</p>
+        <DotWave size={10} className="mt-10" label="Chargement…" />
       ) : (
         <div className="mt-8 grid gap-6 sm:grid-cols-2">
           {SLOTS.map((slot) => (

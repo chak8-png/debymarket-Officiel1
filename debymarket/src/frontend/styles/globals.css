@@ -56,3 +56,21 @@ html {
 .fade-delay-3 {
   animation-delay: 0.35s;
 }
+
+/* ── Dot wave (indicateur de chargement) ──────────────────────────── */
+@keyframes dot-wave {
+  0%,
+  60%,
+  100% {
+    transform: translateY(0);
+  }
+  30% {
+    transform: translateY(-140%);
+  }
+}
+
+.dot-wave-dot {
+  display: inline-block;
+  animation: dot-wave 1s ease-in-out infinite;
+  will-change: transform;
+}
