@@ -16,6 +16,7 @@ export const HOME_IMAGE_KEYS = [
   "home.card.femme",
   "home.card.electronique-electromenager",
   "home.card.jouets-jeux",
+  "home.card.quincaillerie",
   "home.card.produit-erotique",
 ] as const;
 

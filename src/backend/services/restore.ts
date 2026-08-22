@@ -16,6 +16,7 @@ import { getCategoryById } from "../lib/categories";
 import { slugify } from "../lib/products";
 import { ORDER_STATUSES } from "../lib/constants";
 import { HOME_IMAGE_KEYS } from "../lib/settings";
+import { pgErrorInfo } from "../lib/pg-error";
 import {
   parseGallery,
   parseColors,
@@ -45,15 +46,16 @@ function isRecord(v: unknown): v is Record<string, unknown> {
   return typeof v === "object" && v !== null && !Array.isArray(v);
 }
 
-/** Entier borné, ou null si non conforme. */
+/** Entier borné, ou null si non conforme. null/absent → null (jamais 0 forcé). */
 function int(v: unknown, min: number, max: number): number | null {
+  if (v === null || v === undefined || v === "") return null;
   const n = typeof v === "number" ? v : Number(v);
   if (!Number.isFinite(n)) return null;
   const r = Math.round(n);
   return r >= min && r <= max ? r : null;
 }
 
-/** Texte nettoyé (caractères de contrôle retirés) et plafonné. */
+/** Texte nettoye (caracteres de controle retires) et plafonne. */
 function text(v: unknown, max: number, fallback = ""): string {
   if (typeof v !== "string") return fallback;
   return v.replace(/[\u0000-\u001F\u007F]/g, " ").trim().slice(0, max);
@@ -161,6 +163,7 @@ export async function importBackup(data: unknown): Promise<RestoreResult> {
   const itemRows: (typeof orderItems.$inferInsert)[] = [];
   let commandesIgnorees = 0;
   const seenOrderIds = new Set<number>();
+  const seenReferences = new Set<string>();
 
   for (const o of rawOrders) {
     if (!isRecord(o)) {
@@ -179,12 +182,13 @@ export async function importBackup(data: unknown): Promise<RestoreResult> {
     if (
       !id || !reference || !customerName || !phone ||
       subtotal === null || deliveryFee === null || total === null ||
-      seenOrderIds.has(id)
+      seenOrderIds.has(id) || seenReferences.has(reference)
     ) {
       commandesIgnorees++;
       continue;
     }
     seenOrderIds.add(id);
+    seenReferences.add(reference);
     const statusRaw = text(o.status, 20);
     orderRows.push({
       id,
@@ -263,17 +267,28 @@ export async function importBackup(data: unknown): Promise<RestoreResult> {
     );
   } catch (error) {
     console.error("[restore] Échec de la restauration :", error);
-    const msg = error instanceof Error ? error.message : "";
-    if (msg.includes("does not exist") || msg.includes("n'existe pas")) {
+    // Endpoint protégé par session admin → cause exacte affichée.
+    const { code, raw } = pgErrorInfo(error);
+    const msg = raw.toLowerCase();
+    if (code === "42P01" || msg.includes("does not exist") || msg.includes("n'existe pas")) {
       return {
         ok: false,
         error:
-          "Les tables sont absentes de la base. Lancez d'abord l'initialisation (POST /api/seed?tables=1 — voir DEPLOIEMENT.md), puis recommencez la restauration.",
+          "Les tables sont absentes de la base. Lancez d'abord l'initialisation (POST /api/seed?tables=1 — voir DEPLOIEMENT.md), puis recommencez la restauration. " +
+          `[détail : ${code} — ${raw.slice(0, 120)}]`,
       };
+    }
+    let hint = "Restauration impossible — vérifiez la connexion à la base et réessayez";
+    if (/(econnrefused|etimedout|econnreset|timeout|timed out|terminated|no route)/.test(msg) || code.startsWith("08")) {
+      hint = "Connexion à la base interrompue pendant la restauration — réessayez dans une minute";
+    } else if (code === "23505" || msg.includes("duplicate key")) {
+      hint = "Conflit de doublon dans le fichier (2 lignes partagent une clé unique)";
+    } else if (code === "22001" || msg.includes("value too long")) {
+      hint = "Une donnée du fichier dépasse la taille maximale d'une colonne";
     }
     return {
       ok: false,
-      error: "Restauration impossible — vérifiez la connexion à la base et réessayez.",
+      error: `${hint}. [détail : ${code} — ${raw.slice(0, 160)}]`,
     };
   }
 

@@ -49,6 +49,13 @@ const SLOTS: Slot[] = [
     maxWidth: 1200,
   },
   {
+    key: "home.card.quincaillerie",
+    label: "🔧 Carte « Quincaillerie »",
+    hint: "Format portrait conseillé",
+    defaultImg: "/images/home/quincaillerie.jpg",
+    maxWidth: 1200,
+  },
+  {
     key: "home.card.jouets-jeux",
     label: "🧸 Carte « Jouets et jeux »",
     hint: "Format portrait conseillé",

@@ -18,6 +18,7 @@ const IMG = {
   menager: "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?auto=format&fit=crop&w=1200&q=80",
   jouets: "/images/home/jouets-jeux.jpg", // visuel local (jouets colorés)
   erotique: "/images/home/produit-erotique.jpg", // visuel local (roses & soie)
+  quincaillerie: "/images/home/quincaillerie.jpg", // visuel local (outillage)
 };
 
 const UNIVERS = [
@@ -43,10 +44,17 @@ const UNIVERS = [
     img: IMG.electro,
   },
   {
+    slug: "quincaillerie",
+    name: "Quincaillerie",
+    href: "/categories/quincaillerie",
+    desc: "Outillage, bricolage & matériel de chantier.",
+    img: IMG.quincaillerie,
+  },
+  {
     slug: "jouets-jeux",
     name: "Jouets et jeux",
     href: "/categories/jouets-jeux",
-    desc: "Jouets, jeux de société & éveil pour petits et grands.",
+    desc: "Jouets, jeux de société & jouets électroniques.",
     img: IMG.jouets,
   },
   {
@@ -297,12 +305,15 @@ export default async function HomeView() {
                 aucun risque.
               </p>
               <p>
-                Notre catalogue réunit quatre univers : la mode <strong>homme</strong>
+                Notre catalogue réunit cinq univers : la mode <strong>homme</strong>
                 (chemises, polos, pantalons, costumes et blazers), l&apos;univers
                 <strong> femme</strong> (sacs à main, beauté et cosmétique,
-                maillots de bain, chaussures), l&apos;<strong>électronique et
+                maillots de bain, lingerie, chaussures et vêtements), l&apos;<strong>électronique et
                 l&apos;électroménager</strong> (téléphonie, écouteurs, power
-                banks, petit équipement de la maison) ainsi qu&apos;un espace
+                banks, ventilateurs et matériel pour la maison et la cuisine),
+                la <strong>quincaillerie</strong> (outillage et bricolage) et
+                l&apos;univers <strong>jouets et jeux</strong> (éveil, jeux de
+                société et jouets électroniques) — ainsi qu&apos;un espace
                 réservé aux adultes, géré avec discrétion. Chaque produit est
                 sélectionné, vérifié et proposé au prix juste en francs CFA.
               </p>

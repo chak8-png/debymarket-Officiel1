@@ -11,6 +11,7 @@ import { CATEGORY_LIST } from "@/backend/lib/categories";
 import { createHash, timingSafeEqual } from "node:crypto";
 import { rateLimitHit } from "@/backend/lib/rate-limit";
 import { getClientIp } from "@/backend/lib/http-guards";
+import { pgErrorInfo } from "@/backend/lib/pg-error";
 import { PRODUCTS } from "@/backend/lib/seed-data";
 
 /** Comparaison du secret en temps constant (anti timing attack). */
@@ -197,11 +198,9 @@ export async function POST(req: Request) {
   } catch (error) {
     console.error("[seed] Erreur :", error);
     // Endpoint protégé par secret → on peut afficher la cause exacte de
-    // l'échec PostgreSQL (code + extrait) pour un diagnostic immédiat,
-    // sans exposer quoi que ce soit au public.
-    const e = error as { code?: string; message?: string } | null;
-    const code = typeof e?.code === "string" ? e.code : "?";
-    const raw = typeof e?.message === "string" ? e.message : "";
+    // l'échec PostgreSQL (code + extrait déballé de l'enrobage Drizzle)
+    // pour un diagnostic immédiat, sans exposer quoi que ce soit au public.
+    const { code, raw } = pgErrorInfo(error);
     const msg = raw.toLowerCase();
     let hint = "Erreur pendant le seed";
     if (/(econnrefused|enotfound|etimedout|econnreset|timeout|timed out|terminated|no route)/.test(msg) || code.startsWith("08")) {
