@@ -13,8 +13,8 @@ export default function RestoreButton() {
   const [busy, setBusy] = useState(false);
 
   async function onFileSelected(file: File) {
-    if (file.size > 8 * 1024 * 1024) {
-      alert("⚠️ Fichier trop volumineux (8 Mo maximum).");
+    if (file.size > 50 * 1024 * 1024) {
+      alert("⚠️ Fichier trop volumineux (50 Mo maximum).");
       return;
     }
     const raw = await file.text();

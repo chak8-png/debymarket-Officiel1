@@ -10,8 +10,8 @@ import {
   demoWriteGuardResponse,
 } from "@/backend/lib/http-guards";
 
-// 8 Mo max — une sauvegarde typique fait < 1 Mo (les photos base64 alourdissent).
-const MAX_BODY = 8 * 1024 * 1024;
+// 50 Mo max — les sauvegardes avec photos base64 dépassent facilement 8 Mo.
+const MAX_BODY = 50 * 1024 * 1024;
 
 export async function POST(req: Request) {
   let body: unknown;
@@ -20,7 +20,7 @@ export async function POST(req: Request) {
   } catch (e) {
     if (e instanceof BodyTooLargeError) {
       return NextResponse.json(
-        { ok: false, error: "Fichier trop volumineux (8 Mo maximum)." },
+        { ok: false, error: "Fichier trop volumineux (50 Mo maximum)." },
         { status: 413 }
       );
     }

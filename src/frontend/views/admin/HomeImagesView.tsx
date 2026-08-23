@@ -5,9 +5,10 @@
 // lien d'image https. « Rétablir » revient à l'image d'origine du site.
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import DotWave from "@/frontend/components/ui/DotWave";
 
 interface Slot {
-  key: string; // clé de réglage côté serveur
+  setting: string; // nom du réglage côté serveur (identifiant public, PAS un secret)
   label: string;
   hint: string;
   defaultImg: string;
@@ -17,7 +18,7 @@ interface Slot {
 // Les valeurs par défaut = celles codées dans la page d'accueil
 const SLOTS: Slot[] = [
   {
-    key: "home.hero",
+    setting: "home.hero",
     label: "🖼️ Image principale (héros)",
     hint: "Grande photo en haut de l'accueil — format paysage conseillé (≈ 1600 px de large)",
     defaultImg:
@@ -25,7 +26,7 @@ const SLOTS: Slot[] = [
     maxWidth: 1600,
   },
   {
-    key: "home.card.homme",
+    setting: "home.card.homme",
     label: "👔 Carte « Homme »",
     hint: "Format portrait conseillé (hauteur > largeur)",
     defaultImg:
@@ -33,7 +34,7 @@ const SLOTS: Slot[] = [
     maxWidth: 1200,
   },
   {
-    key: "home.card.femme",
+    setting: "home.card.femme",
     label: "👗 Carte « Femme »",
     hint: "Format portrait conseillé",
     defaultImg:
@@ -41,7 +42,7 @@ const SLOTS: Slot[] = [
     maxWidth: 1200,
   },
   {
-    key: "home.card.electronique-electromenager",
+    setting: "home.card.electronique-electromenager",
     label: "🔌 Carte « Électronique & Électroménager »",
     hint: "Format portrait conseillé",
     defaultImg:
@@ -49,21 +50,21 @@ const SLOTS: Slot[] = [
     maxWidth: 1200,
   },
   {
-    key: "home.card.quincaillerie",
+    setting: "home.card.quincaillerie",
     label: "🔧 Carte « Quincaillerie »",
     hint: "Format portrait conseillé",
     defaultImg: "/images/home/quincaillerie.jpg",
     maxWidth: 1200,
   },
   {
-    key: "home.card.jouets-jeux",
+    setting: "home.card.jouets-jeux",
     label: "🧸 Carte « Jouets et jeux »",
     hint: "Format portrait conseillé",
     defaultImg: "/images/home/jouets-jeux.jpg",
     maxWidth: 1200,
   },
   {
-    key: "home.card.produit-erotique",
+    setting: "home.card.produit-erotique",
     label: "🌹 Carte « Produit érotique » (18+)",
     hint: "Restez élégant et non explicite — format portrait conseillé",
     defaultImg: "/images/home/produit-erotique.jpg",
@@ -104,7 +105,7 @@ function SlotCard({
 }: {
   slot: Slot;
   saved: string | undefined; // valeur actuellement enregistrée côté serveur
-  onSaved: (key: string, value: string | null) => void;
+  onSaved: (setting: string, value: string | null) => void;
 }) {
   const [pending, setPending] = useState<string | null>(null); // modif non sauvegardée
   const [urlInput, setUrlInput] = useState("");
@@ -122,14 +123,14 @@ function SlotCard({
       const res = await fetch("/api/admin/settings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ key: slot.key, value }),
+        body: JSON.stringify({ key: slot.setting, value }),
       });
       const data = await res.json();
       if (!res.ok || !data.ok) {
         setMsg({ ok: false, text: data.error ?? "Erreur inattendue." });
         return;
       }
-      onSaved(slot.key, value && value !== "" ? value : null);
+      onSaved(slot.setting, value && value !== "" ? value : null);
       setPending(null);
       setUrlInput("");
       setMsg({
@@ -262,11 +263,11 @@ export default function HomeImagesView() {
       .finally(() => setLoaded(true));
   }, []);
 
-  const onSaved = (key: string, value: string | null | undefined) =>
+  const onSaved = (setting: string, value: string | null | undefined) =>
     setSaved((prev) => {
       const next = { ...prev };
-      if (value === null || value === undefined || value === "") delete next[key];
-      else next[key] = value;
+      if (value === null || value === undefined || value === "") delete next[setting];
+      else next[setting] = value;
       return next;
     });
 
@@ -292,11 +293,11 @@ export default function HomeImagesView() {
       </div>
 
       {!loaded ? (
-        <p className="mt-10 text-center text-sm text-gray-400">Chargement…</p>
+        <DotWave size={10} className="mt-10" label="Chargement…" />
       ) : (
         <div className="mt-8 grid gap-6 sm:grid-cols-2">
           {SLOTS.map((slot) => (
-            <SlotCard key={slot.key} slot={slot} saved={saved[slot.key]} onSaved={onSaved} />
+            <SlotCard key={slot.setting} slot={slot} saved={saved[slot.setting]} onSaved={onSaved} />
           ))}
         </div>
       )}

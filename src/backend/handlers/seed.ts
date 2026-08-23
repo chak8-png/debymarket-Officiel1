@@ -21,6 +21,34 @@ function secretMatches(given: string, expected: string): boolean {
   return timingSafeEqual(a, b);
 }
 
+/** Erreur de validation d'entrée → renvoyée au client en 400. */
+class SeedValidationError extends Error {}
+
+/**
+ * Schéma de validation explicite de la query string (POST /api/seed).
+ * Whitelist stricte — RIEN d'autre n'est accepté :
+ *   • (aucun paramètre) → seed complet : catégories + catalogue de départ
+ *   • ?tables=1         → crée/met à niveau le SCHÉMA uniquement (aucune donnée)
+ * Toute autre valeur, ou tout paramètre inconnu, est rejeté en 400.
+ */
+function parseSeedQuery(req: Request): { tablesOnly: boolean } {
+  const params = new URL(req.url).searchParams;
+  for (const name of params.keys()) {
+    if (name !== "tables") {
+      throw new SeedValidationError(
+        `Paramètre inconnu : « ${name} » — seul « tables=1 » est accepté.`
+      );
+    }
+  }
+  const tables = params.get("tables");
+  if (tables !== null && tables !== "1") {
+    throw new SeedValidationError(
+      "Valeur invalide pour « tables » — seule « 1 » est acceptée."
+    );
+  }
+  return { tablesOnly: tables === "1" };
+}
+
 /**
  * Crée les 4 tables si elles n'existent pas.
  * Miroir exact de backend/db/schema.ts — idempotent (rejouable sans risque).
@@ -166,6 +194,20 @@ export async function POST(req: Request) {
     );
   }
 
+  // 🛡️ Validation des entrées : schéma whitelist de la query string (400 sinon).
+  let query: { tablesOnly: boolean };
+  try {
+    query = parseSeedQuery(req);
+  } catch (e) {
+    if (e instanceof SeedValidationError) {
+      return NextResponse.json(
+        { ok: false, error: e.message },
+        { status: 400 }
+      );
+    }
+    throw e;
+  }
+
   try {
     // 1. Tables (créées automatiquement si la base est neuve)
     //    Réessais : une base qui sort de veille peut échouer au 1er essai.
@@ -175,7 +217,7 @@ export async function POST(req: Request) {
     // niveau le SCHÉMA uniquement — AUCUN article de démonstration inséré.
     // À utiliser quand la boutique ne vend que ses propres produits.
     // (Le catalogue démo n'est qu'un remplissage de départ facultatif.)
-    if (new URL(req.url).searchParams.get("tables") === "1") {
+    if (query.tablesOnly) {
       await realignSequences();
       return NextResponse.json({ ok: true, tablesOnly: true });
     }
