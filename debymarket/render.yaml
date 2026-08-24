@@ -1,0 +1,26 @@
+# ============================================================
+# Blueprint Render — https://render.com/docs/blueprint-spec
+#
+# Déploie Debymarket sur Render quasi automatiquement :
+# Dashboard Render → New → Blueprint → choisir ce dépôt.
+# Les valeurs "sync: false" (secrets) sont demandées à l'écran
+# au moment du déploiement, rien n'est écrit dans Git.
+# ============================================================
+services:
+  - type: web
+    name: debymarket              # URL résultante : https://debymarket.onrender.com
+    runtime: node
+    plan: free                    # "starter" (7 $/mois) = plus de mise en veille
+    region: frankfurt             # région la plus proche de la Côte d'Ivoire
+    buildCommand: npm install && npm run build
+    startCommand: npm start       # next start (lit automatiquement le PORT de Render)
+    healthCheckPath: /
+    envVars:
+      - key: DATABASE_URL         # chaîne PostgreSQL/Neon (…-pooler…)
+        sync: false
+      - key: ADMIN_PASSWORD       # mot de passe du Dashboard
+        sync: false
+      - key: NEXT_PUBLIC_APP_URL  # utilisé par le sitemap / liens absolus
+        value: https://debymarket.onrender.com
+      - key: NEXT_PUBLIC_HOTJAR_ID
+        sync: false
