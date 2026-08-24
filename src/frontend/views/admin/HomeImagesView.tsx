@@ -3,9 +3,9 @@
 // Page admin : /admin/images — personnalise les images de la page d'accueil.
 // Upload depuis le téléphone/PC (redimensionné automatiquement en JPEG) ou
 // lien d'image https. « Rétablir » revient à l'image d'origine du site.
-import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import DotWave from "@/frontend/components/ui/DotWave";
+import AdminShell from "@/frontend/components/admin/AdminShell";
 
 interface Slot {
   setting: string; // nom du réglage côté serveur (identifiant public, PAS un secret)
@@ -272,26 +272,10 @@ export default function HomeImagesView() {
     });
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-10">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="font-display text-3xl font-semibold tracking-tight">
-            🖼️ Images de la page d'accueil
-          </h1>
-          <p className="mt-1 text-sm text-gray-500">
-            Changez la grande photo d'accueil et les cartes des univers — les
-            photos sont envoyées depuis votre téléphone ou votre ordinateur et
-            visibles <strong>immédiatement</strong> sur la boutique.
-          </p>
-        </div>
-        <Link
-          href="/admin"
-          className="rounded-xl border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm transition hover:border-brand-400 hover:text-brand-700"
-        >
-          ← Tableau de bord
-        </Link>
-      </div>
-
+    <AdminShell
+      title="Images de la page d'accueil"
+      subtitle="Changez la grande photo d'accueil et les cartes des univers — visibles immédiatement sur la boutique."
+    >
       {!loaded ? (
         <DotWave size={10} className="mt-10" label="Chargement…" />
       ) : (
@@ -308,6 +292,6 @@ export default function HomeImagesView() {
         sur les téléphones de vos clients. Vous pouvez revenir à l'image
         d'origine à tout moment avec « ↺ Rétablir ».
       </div>
-    </div>
+    </AdminShell>
   );
 }

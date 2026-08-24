@@ -1,5 +1,4 @@
 // VUE : tableau de bord admin (stats, commandes, stock par catégorie).
-import Link from "next/link";
 import { listOrders } from "@/backend/services/orders";
 import { fetchProducts } from "@/backend/lib/products";
 import {
@@ -22,8 +21,9 @@ import {
 import OrderStatusSelect from "@/frontend/components/admin/OrderStatusSelect";
 import StockControl from "@/frontend/components/admin/StockControl";
 import ProductEditor from "@/frontend/components/admin/ProductEditor";
-import LogoutButton from "@/frontend/components/admin/LogoutButton";
+import AdminShell from "@/frontend/components/admin/AdminShell";
 import ProductDeleteButton from "@/frontend/components/admin/ProductDeleteButton";
+import ProductDuplicateButton from "@/frontend/components/admin/ProductDuplicateButton";
 import DbStatusBanner from "@/frontend/components/admin/DbStatusBanner";
 import RestoreButton from "@/frontend/components/admin/RestoreButton";
 
@@ -79,60 +79,42 @@ export default async function DashboardView() {
   );
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-10">
+    <AdminShell
+      title="Tableau de bord"
+      subtitle="Vue d'ensemble de votre boutique — commandes, chiffre d'affaires et stock."
+    >
       <DbStatusBanner />
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="font-display text-3xl font-semibold tracking-tight">
-          📊 Tableau de bord
-        </h1>
-        <div className="flex flex-wrap items-center gap-3">
-          <Link
-            href="/admin/images"
-            className="inline-flex items-center gap-2 rounded-xl bg-brand-600 px-4 py-2 text-sm font-bold text-white shadow-sm transition hover:bg-brand-700"
-            title="Changer la grande photo d'accueil et les cartes des univers"
-          >
-            🖼️ Images de l'accueil
-          </Link>
-          <Link
-            href="/"
-            className="text-sm font-semibold text-brand-600 hover:underline"
-          >
-            ← Retour à la boutique
-          </Link>
-          <LogoutButton />
-        </div>
-      </div>
 
       {/* Statistiques */}
-      <div className="mt-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <div className="rounded-2xl border bg-white p-5">
-          <p className="text-sm text-gray-500">Commandes</p>
-          <p className="mt-1 text-2xl font-display font-semibold tracking-tight">
+      <div className="mt-5 grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
+        <div className="rounded-2xl border border-merchant-border/40 bg-white p-4 shadow-sm lg:p-5">
+          <p className="text-xs font-bold uppercase tracking-wide text-merchant-sub">Commandes</p>
+          <p className="mt-1 text-xl font-display font-bold tracking-tight lg:text-2xl">
             {orders.length}
           </p>
         </div>
-        <div className="rounded-2xl border bg-white p-5">
-          <p className="text-sm text-gray-500">En attente</p>
-          <p className="mt-1 text-2xl font-display font-semibold tracking-tight text-amber-600">
+        <div className="rounded-2xl border border-merchant-border/40 bg-white p-4 shadow-sm lg:p-5">
+          <p className="text-xs font-bold uppercase tracking-wide text-merchant-sub">En attente</p>
+          <p className="mt-1 text-xl font-display font-bold tracking-tight text-amber-600 lg:text-2xl">
             {pendingCount}
           </p>
         </div>
-        <div className="rounded-2xl border bg-white p-5">
-          <p className="text-sm text-gray-500">CA encaissé</p>
-          <p className="mt-1 text-2xl font-display font-semibold tracking-tight text-green-600">
+        <div className="rounded-2xl border border-merchant-border/40 bg-white p-4 shadow-sm lg:p-5">
+          <p className="text-xs font-bold uppercase tracking-wide text-merchant-sub">CA encaissé</p>
+          <p className="mt-1 text-xl font-display font-bold tracking-tight text-merchant-green lg:text-2xl">
             {formatXOF(revenue)}
           </p>
         </div>
-        <div className="rounded-2xl border bg-white p-5">
-          <p className="text-sm text-gray-500">Produits suivis</p>
-          <p className="mt-1 text-2xl font-display font-semibold tracking-tight">
+        <div className="rounded-2xl border border-merchant-border/40 bg-white p-4 shadow-sm lg:p-5">
+          <p className="text-xs font-bold uppercase tracking-wide text-merchant-sub">Produits suivis</p>
+          <p className="mt-1 text-xl font-display font-bold tracking-tight lg:text-2xl">
             {products.filter((p) => visibleCategoryIds.has(p.categoryId)).length}
           </p>
         </div>
       </div>
 
       {/* Commandes / Historique des transactions */}
-      <section className="mt-10">
+      <section id="commandes" className="mt-8 scroll-mt-16">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 className="font-display text-xl font-semibold tracking-tight">
             🧾 Historique des transactions
@@ -163,8 +145,8 @@ export default async function DashboardView() {
             ici (livraison 24h, paiement à la livraison).
           </p>
         ) : (
-          <div className="mt-4 overflow-x-auto rounded-2xl border bg-white">
-            <table className="w-full min-w-[900px] text-sm">
+          <div className="mt-4 overflow-x-auto rounded-2xl border border-merchant-border/40 bg-white shadow-sm">
+            <table className="w-full min-w-[760px] text-sm">
               <thead>
                 <tr className="border-b bg-gray-50 text-left text-xs uppercase text-gray-500">
                   <th className="px-4 py-3">Référence</th>
@@ -246,14 +228,14 @@ export default async function DashboardView() {
       </section>
 
       {/* Produits & stock par catégorie */}
-      <section className="mt-10">
+      <section id="stock" className="mt-10 scroll-mt-16">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 className="font-display text-xl font-semibold tracking-tight">
             📦 Produits & stock par catégorie
           </h2>
           <div className="flex items-center gap-3">
             <span className="hidden text-xs text-gray-400 sm:inline">
-              ✏️ modifier · 🗑️ supprimer · − / + pour le stock
+              ✏️ modifier · 📄 dupliquer · 🗑️ supprimer · − / + stock
             </span>
             <ProductEditor categories={categoryOptions} />
           </div>
@@ -314,6 +296,14 @@ export default async function DashboardView() {
                                   ⭐
                                 </span>
                               )}
+                              {p.oldPrice !== null && p.oldPrice > p.price && (
+                                <span
+                                  className="ml-2 rounded-full bg-red-600 px-2 py-0.5 text-[10px] font-bold text-white align-middle"
+                                  title={`Promotion : ${formatXOF(p.oldPrice)} → ${formatXOF(p.price)}`}
+                                >
+                                  −{Math.round((1 - p.price / p.oldPrice) * 100)}%
+                                </span>
+                              )}
                             </span>
                             <span className="flex shrink-0 items-center gap-2">
                               <span className="text-xs text-gray-500">
@@ -326,6 +316,7 @@ export default async function DashboardView() {
                                   name: p.name,
                                   description: p.description,
                                   price: p.price,
+                                  oldPrice: p.oldPrice,
                                   categoryId: p.categoryId,
                                   image: p.image,
                                   imageUrl: p.imageUrl,
@@ -336,6 +327,7 @@ export default async function DashboardView() {
                                   isActive: p.isActive,
                                 }}
                               />
+                              <ProductDuplicateButton productId={p.id} name={p.name} />
                               <ProductDeleteButton productId={p.id} name={p.name} />
                               <StockControl productId={p.id} stock={p.stock} />
                             </span>
@@ -350,6 +342,6 @@ export default async function DashboardView() {
           </div>
         ))}
       </section>
-    </div>
+    </AdminShell>
   );
 }

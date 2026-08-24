@@ -39,6 +39,19 @@ const config: Config = {
         },
         cream: "#fafaf7",
         sand: "#f3f2ee",
+        // Palette « Merchant Pro » (tableau de bord) — bleu/vert charte
+        merchant: {
+          bg: "#f8f9ff",
+          low: "#eff4ff",
+          container: "#e5eeff",
+          high: "#dce9ff",
+          border: "#c3c6d7",
+          text: "#0b1c30",
+          sub: "#434655",
+          primary: "#004ac6",
+          primarydark: "#003ea8",
+          green: "#006c49",
+        },
       },
       fontFamily: {
         sans: ["var(--font-sans)", "system-ui", "sans-serif"],

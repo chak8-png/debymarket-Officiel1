@@ -72,10 +72,20 @@ export default async function ProductDetailView({
 
           <h1 className="mt-3 text-3xl font-display font-semibold tracking-tight">{product.name}</h1>
 
-          <div className="mt-4 flex items-baseline gap-3">
+          <div className="mt-4 flex flex-wrap items-baseline gap-3">
             <p className="text-3xl font-display font-semibold tracking-tight text-brand-600">
               {formatXOF(product.price)}
             </p>
+            {product.oldPrice !== null && product.oldPrice > product.price && (
+              <>
+                <s className="text-lg font-medium text-gray-400">
+                  {formatXOF(product.oldPrice)}
+                </s>
+                <span className="rounded-full bg-red-600 px-2.5 py-0.5 text-sm font-bold text-white">
+                  −{Math.round((1 - product.price / product.oldPrice) * 100)}%
+                </span>
+              </>
+            )}
           </div>
 
           <p className="mt-4 leading-relaxed text-gray-600">

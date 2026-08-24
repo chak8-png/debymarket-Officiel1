@@ -27,6 +27,11 @@ export default function ProductCard({ product }: { product: Product }) {
             Plus que {product.stock}
           </span>
         )}
+        {product.oldPrice !== null && product.oldPrice > product.price && (
+          <span className="absolute left-3 top-3 rounded-full bg-red-600 px-2 py-0.5 text-xs font-bold text-white shadow">
+            −{Math.round((1 - product.price / product.oldPrice) * 100)}%
+          </span>
+        )}
       </Link>
 
       <div className="flex flex-1 flex-col gap-1.5 p-4">
@@ -39,9 +44,16 @@ export default function ProductCard({ product }: { product: Product }) {
         <Stars rating={product.rating} />
 
         <div className="mt-auto flex items-end justify-between pt-2">
-          <p className="text-base font-bold text-ink-950">
-            {formatXOF(product.price)}
-          </p>
+          <div>
+            <p className="text-base font-bold text-ink-950">
+              {formatXOF(product.price)}
+            </p>
+            {product.oldPrice !== null && product.oldPrice > product.price && (
+              <s className="text-xs font-medium text-gray-400">
+                {formatXOF(product.oldPrice)}
+              </s>
+            )}
+          </div>
           <AddToCart
             product={{
               id: product.id,

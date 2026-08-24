@@ -8,6 +8,8 @@ import {
   updateProduct,
   updateProductStock,
   deleteProduct,
+  duplicateProduct,
+  getProductById,
   type ProductInput,
 } from "@/backend/lib/products";
 import { getCategoryById, getChildren } from "@/backend/lib/categories";
@@ -45,6 +47,32 @@ function cleanPrice(v: unknown): number | null {
   if (typeof v !== "number" || !Number.isFinite(v)) return null;
   const n = Math.round(v);
   return n >= 0 && n <= 100_000_000 ? n : null;
+}
+
+/**
+ * Prix barré (promo) : entier ≥ 1, ou null/"" pour « pas de promo ».
+ *   • undefined → champ absent (PATCH : le prix barré reste inchangé)
+ *   • null      → retirer la promo
+ *   • false     → valeur invalide → 400
+ */
+function cleanOldPrice(v: unknown): number | null | undefined | false {
+  if (v === undefined) return undefined;
+  if (v === null || v === "") return null;
+  if (typeof v !== "number" || !Number.isFinite(v)) return false;
+  const n = Math.round(v);
+  return n >= 1 && n <= 100_000_000 ? n : false;
+}
+
+/** Réponse 400 si la promo est incohérente (prix barré ≤ prix actuel). */
+function promoError() {
+  return NextResponse.json(
+    {
+      ok: false,
+      error:
+        "Prix avant promo invalide : il doit être SUPÉRIEUR au prix actuel (ex. prix 8 500 F, avant promo 12 000 F).",
+    },
+    { status: 400 }
+  );
 }
 
 /** Catégorie valide = existante ET feuille (sans sous-catégorie). */
@@ -188,10 +216,20 @@ export async function POST(req: Request) {
     );
   }
 
+  const oldPrice = cleanOldPrice(body.oldPrice);
+  if (oldPrice === false) {
+    return NextResponse.json(
+      { ok: false, error: "Prix avant promo invalide (entier en FCFA)." },
+      { status: 400 }
+    );
+  }
+  if (oldPrice != null && oldPrice <= price) return promoError();
+
   const input: ProductInput & { stock: number } = {
     name,
     description: cleanDescription(body.description),
     price,
+    oldPrice: oldPrice ?? null,
     categoryId,
     image: cleanEmoji(body.image),
     imageUrl: cleanImageUrl(body.imageUrl),
@@ -279,6 +317,26 @@ export async function PATCH(
         { status: 400 }
       );
     details.price = v;
+  }
+  if (body.oldPrice !== undefined) {
+    const v = cleanOldPrice(body.oldPrice);
+    if (v === false)
+      return NextResponse.json(
+        { ok: false, error: "Prix avant promo invalide (entier en FCFA)." },
+        { status: 400 }
+      );
+    if (v != null) {
+      // Le prix barré doit dépasser le prix actuel (modifié ou existant).
+      const effective =
+        details.price ?? (await getProductById(id))?.price ?? null;
+      if (effective === null)
+        return NextResponse.json(
+          { ok: false, error: "Produit introuvable." },
+          { status: 404 }
+        );
+      if (v <= effective) return promoError();
+    }
+    details.oldPrice = v;
   }
   if (body.categoryId !== undefined) {
     const v = cleanCategoryId(body.categoryId);
@@ -369,5 +427,41 @@ export async function DELETE(
   return NextResponse.json(
     ok ? { ok: true } : { ok: false, error: "Produit introuvable." },
     { status: ok ? 200 : 404 }
+  );
+}
+
+// ── POST /api/admin/products/[id]/duplicate — dupliquer ──────────────────
+
+export async function duplicateProductHandler(
+  _req: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id: rawId } = await params;
+  const id = Number(rawId);
+  if (!Number.isInteger(id)) {
+    return NextResponse.json(
+      { ok: false, error: "Identifiant invalide." },
+      { status: 400 }
+    );
+  }
+
+  let product: Awaited<ReturnType<typeof duplicateProduct>>;
+  try {
+    product = await duplicateProduct(id);
+  } catch (e) {
+    // Mode démo en production : on REFUSE l'écriture (elle serait perdue).
+    const guard = demoWriteGuardResponse(e);
+    if (guard) return guard;
+    throw e;
+  }
+  if (!product) {
+    return NextResponse.json(
+      { ok: false, error: "Produit introuvable ou duplication impossible." },
+      { status: 404 }
+    );
+  }
+  return NextResponse.json(
+    { ok: true, product: { id: product.id, name: product.name } },
+    { status: 201 }
   );
 }

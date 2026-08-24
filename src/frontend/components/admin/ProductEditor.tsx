@@ -25,6 +25,8 @@ export interface EditableProduct {
   name: string;
   description: string;
   price: number;
+  /** Prix barré (promo) — null = pas de promo. */
+  oldPrice: number | null;
   categoryId: number;
   image: string;
   imageUrl: string | null;
@@ -89,6 +91,7 @@ async function fileToDataUri(
 interface FormState {
   name: string;
   price: string;
+  oldPrice: string; // "" = pas de promo
   categoryId: string;
   description: string;
   image: string;
@@ -100,6 +103,7 @@ interface FormState {
 const EMPTY_FORM: FormState = {
   name: "",
   price: "",
+  oldPrice: "",
   categoryId: "",
   description: "",
   image: "🛍️",
@@ -138,6 +142,7 @@ export default function ProductEditor({
       setForm({
         name: product.name,
         price: String(product.price),
+        oldPrice: product.oldPrice ? String(product.oldPrice) : "",
         categoryId: String(product.categoryId),
         description: product.description,
         image: product.image || "🛍️",
@@ -258,9 +263,22 @@ export default function ProductEditor({
       return setError("Prix invalide (entier en FCFA, ex : 8500).");
     if (!categoryId) return setError("Choisissez une catégorie.");
 
+    // 🏷️ Promotion : champ vide = pas de promo ; sinon entier > prix actuel.
+    let oldPrice: number | null = null;
+    if (form.oldPrice.trim() !== "") {
+      oldPrice = Math.round(Number(form.oldPrice));
+      if (!Number.isFinite(oldPrice) || oldPrice < 1)
+        return setError("Prix avant promo invalide (entier en FCFA, ex : 12000).");
+      if (oldPrice <= price)
+        return setError(
+          "Le prix avant promo doit être SUPÉRIEUR au prix actuel (ex. prix 8 500, avant promo 12 000)."
+        );
+    }
+
     const payload: Record<string, unknown> = {
       name: form.name.trim(),
       price,
+      oldPrice, // null = retirer/pas de promo
       categoryId,
       description: form.description.trim(),
       image: form.image.trim() || "🛍️",
@@ -300,6 +318,15 @@ export default function ProductEditor({
       setLoading(false);
     }
   };
+
+  // 🏷️ Aperçu promo en direct : % affiché si prix avant promo > prix actuel.
+  const livePrice = Math.round(Number(form.price));
+  const liveOld =
+    form.oldPrice.trim() === "" ? null : Math.round(Number(form.oldPrice));
+  const promoPercent =
+    liveOld !== null && Number.isFinite(livePrice) && liveOld > livePrice
+      ? Math.round((1 - livePrice / liveOld) * 100)
+      : 0;
 
   const inputCls =
     "w-full rounded-xl border border-gray-200 bg-gray-50/60 px-3 py-2 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100";
@@ -392,6 +419,35 @@ export default function ProductEditor({
                       onChange={(e) => setForm({ ...form, stock: e.target.value })}
                     />
                   </div>
+                )}
+              </div>
+
+              {/* 🏷️ Promotion (optionnel) */}
+              <div className="rounded-xl border border-dashed border-green-300 bg-green-50/40 p-3">
+                <label className={labelCls} htmlFor="pe-oldprice">
+                  🏷️ Promotion — prix AVANT réduction (FCFA, optionnel)
+                </label>
+                <input
+                  id="pe-oldprice"
+                  className={inputCls}
+                  type="number"
+                  min={0}
+                  step={1}
+                  value={form.oldPrice}
+                  onChange={(e) => setForm({ ...form, oldPrice: e.target.value })}
+                  placeholder="Laisser vide = pas de promo"
+                />
+                {promoPercent > 0 && liveOld !== null ? (
+                  <p className="mt-1.5 text-xs font-bold text-green-700">
+                    ✓ Badge « −{promoPercent} % » affiché — le client verra :{" "}
+                    <s>{liveOld.toLocaleString("fr-FR")} F</s>{" "}
+                    <strong>{livePrice.toLocaleString("fr-FR")} F</strong>
+                  </p>
+                ) : (
+                  <p className="mt-1 text-[11px] text-gray-400">
+                    Saisissez l'ANCIEN prix (plus élevé) : le client verra le prix
+                    barré + le pourcentage de réduction. Vide = pas de promo.
+                  </p>
                 )}
               </div>
 

@@ -11,6 +11,9 @@ import {
   serializeGallery,
   serializeColors,
   serializeSizes,
+  parseGallery,
+  parseColors,
+  parseSizes,
   type ProductColor,
 } from "./product-variants";
 
@@ -197,6 +200,7 @@ export interface ProductInput {
   name: string;
   description: string;
   price: number;
+  oldPrice?: number | null; // prix barré (promo) — null = pas de promo
   categoryId: number;
   image: string; // emoji de secours (affiché si pas de photo)
   imageUrl: string | null; // photo principale : /images/..., https://... ou data:image/...
@@ -242,7 +246,7 @@ export async function createProduct(
     ...rest,
     slug,
     stock,
-    oldPrice: null,
+    oldPrice: input.oldPrice ?? null,
     rating: 4,
     gallery: serializeGallery(gallery),
     colors: serializeColors(colors),
@@ -341,4 +345,37 @@ export async function getProductsByIds(ids: number[]): Promise<Product[]> {
   }
   const catalog = demoProducts();
   return catalog.filter((p) => ids.includes(p.id));
+}
+
+/**
+ * Duplique un produit : copie conforme (même catégorie, prix, photos,
+ * couleurs, tailles, stock…) avec « (copie) » ajouté au nom et un slug
+ * unique. La copie n'est PAS mise à la une (isFeatured retombe à false).
+ * Gain de temps considérable pour les déclinaisons d'un même article.
+ */
+export async function duplicateProduct(id: number): Promise<Product | null> {
+  const all = await loadAll();
+  const source = all.find((p) => p.id === id);
+  if (!source) return null;
+  return createProduct({
+    name: `${source.name} (copie)`.slice(0, 120),
+    description: source.description,
+    price: source.price,
+    oldPrice: source.oldPrice,
+    categoryId: source.categoryId,
+    image: source.image,
+    imageUrl: source.imageUrl,
+    gallery: parseGallery(source.gallery),
+    colors: parseColors(source.colors),
+    sizes: parseSizes(source.sizes),
+    isFeatured: false,
+    isActive: source.isActive,
+    stock: source.stock,
+  });
+}
+
+/** Charge un produit par son id (admin — ex. validation de promo). */
+export async function getProductById(id: number): Promise<Product | null> {
+  const all = await loadAll();
+  return all.find((p) => p.id === id) ?? null;
 }
