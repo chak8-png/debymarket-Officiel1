@@ -262,6 +262,52 @@ export async function POST(req: Request) {
   return NextResponse.json({ ok: true, product }, { status: 201 });
 }
 
+// ── GET /api/admin/products/[id] — détail d'un produit (aperçu) ───────────
+
+export async function GET(
+  _req: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id: rawId } = await params;
+  const id = Number(rawId);
+  if (!Number.isInteger(id)) {
+    return NextResponse.json(
+      { ok: false, error: "Identifiant invalide." },
+      { status: 400 }
+    );
+  }
+  const product = await getProductById(id);
+  if (!product) {
+    return NextResponse.json(
+      { ok: false, error: "Produit introuvable (retiré du catalogue ?)." },
+      { status: 404 }
+    );
+  }
+  // Libellé complet de la catégorie : « 🔌 Électronique › 🗂️ Autres › 🏋️ Sport »
+  const crumbs: string[] = [];
+  let cat = getCategoryById(product.categoryId);
+  while (cat) {
+    crumbs.unshift(`${cat.icon ?? "•"} ${cat.name}`);
+    cat = cat.parentId !== null ? getCategoryById(cat.parentId) : undefined;
+  }
+  return NextResponse.json({
+    ok: true,
+    product: {
+      id: product.id,
+      name: product.name,
+      slug: product.slug,
+      price: product.price,
+      oldPrice: product.oldPrice,
+      stock: product.stock,
+      image: product.image,
+      imageUrl: product.imageUrl,
+      isActive: product.isActive,
+      description: product.description,
+      categoryLabel: crumbs.join(" › "),
+    },
+  });
+}
+
 // ── PATCH /api/admin/products/[id] — éditer ──────────────────────────────
 
 export async function PATCH(

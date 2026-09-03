@@ -13,12 +13,9 @@ import {
 } from "@/backend/lib/categories";
 import type { Category } from "@/backend/db/schema";
 import { formatXOF } from "@/backend/lib/format";
-import {
-  ORDER_STATUS_LABELS,
-  PAYMENT_STATUS_LABELS,
-  type OrderStatus,
-} from "@/backend/lib/constants";
-import OrderStatusSelect from "@/frontend/components/admin/OrderStatusSelect";
+import OrdersTable, {
+  type AdminOrderDTO,
+} from "@/frontend/components/admin/OrdersTable";
 import StockControl from "@/frontend/components/admin/StockControl";
 import ProductEditor from "@/frontend/components/admin/ProductEditor";
 import AdminShell from "@/frontend/components/admin/AdminShell";
@@ -77,6 +74,31 @@ export default async function DashboardView() {
   const lowStock = products.filter(
     (p) => p.stock <= 5 && visibleCategoryIds.has(p.categoryId)
   );
+
+  // Commandes sérialisées pour le tableau interactif (dates → texte ISO)
+  const orderDtos: AdminOrderDTO[] = orders.map((o) => ({
+    id: o.id,
+    reference: o.reference,
+    customerName: o.customerName,
+    phone: o.phone,
+    city: o.city,
+    address: o.address,
+    status: o.status,
+    paymentMethod: o.paymentMethod,
+    paymentStatus: o.paymentStatus,
+    subtotal: o.subtotal,
+    deliveryFee: o.deliveryFee,
+    total: o.total,
+    createdAt: o.createdAt.toISOString(),
+    items: o.items.map((i) => ({
+      productId: i.productId,
+      name: i.name,
+      quantity: i.quantity,
+      unitPrice: i.unitPrice,
+      variant: i.variant,
+      size: i.size,
+    })),
+  }));
 
   return (
     <AdminShell
@@ -145,79 +167,8 @@ export default async function DashboardView() {
             ici (livraison 24h, paiement à la livraison).
           </p>
         ) : (
-          <div className="mt-4 overflow-x-auto rounded-2xl border border-merchant-border/40 bg-white shadow-sm">
-            <table className="w-full min-w-[760px] text-sm">
-              <thead>
-                <tr className="border-b bg-gray-50 text-left text-xs uppercase text-gray-500">
-                  <th className="px-4 py-3">Référence</th>
-                  <th className="px-4 py-3">Date</th>
-                  <th className="px-4 py-3">Client</th>
-                  <th className="px-4 py-3">Livraison</th>
-                  <th className="px-4 py-3">Articles</th>
-                  <th className="px-4 py-3 text-right">Total</th>
-                  <th className="px-4 py-3">Paiement</th>
-                  <th className="px-4 py-3">Statut</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y">
-                {orders.map((order) => (
-                  <tr key={order.id} className="align-top hover:bg-brand-50/40">
-                    <td className="px-4 py-3 font-mono text-xs font-bold">
-                      {order.reference}
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-xs text-gray-500">
-                      {new Date(order.createdAt).toLocaleString("fr-FR", {
-                        dateStyle: "short",
-                        timeStyle: "short",
-                      })}
-                    </td>
-                    <td className="px-4 py-3">
-                      <p className="font-medium">{order.customerName}</p>
-                      <p className="text-xs text-gray-500">{order.phone}</p>
-                    </td>
-                    <td className="max-w-52 px-4 py-3 text-xs">
-                      <p className="font-medium">{order.city}</p>
-                      <p className="line-clamp-2 text-gray-500">{order.address}</p>
-                    </td>
-                    <td className="px-4 py-3 text-xs text-gray-600">
-                      {order.items.map((i) => (
-                        <p key={i.productId} className="line-clamp-1">
-                          {i.quantity}× {i.name}
-                          {i.variant && (
-                            <span className="ml-1 rounded-full bg-violet-100 px-2 py-0.5 text-[10px] font-bold text-violet-700 align-middle">
-                              🎨 {i.variant}
-                            </span>
-                          )}
-                          {i.size && (
-                            <span className="ml-1 rounded-full bg-sky-100 px-2 py-0.5 text-[10px] font-bold text-sky-700 align-middle">
-                              📏 {i.size}
-                            </span>
-                          )}
-                        </p>
-                      ))}
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-right font-bold text-brand-600">
-                      {formatXOF(order.total)}
-                    </td>
-                    <td className="px-4 py-3 text-xs">
-                      <span
-                        className={`rounded-full px-2 py-0.5 font-semibold ${
-                          order.paymentStatus === "paid"
-                            ? "bg-green-100 text-green-800"
-                            : "bg-amber-100 text-amber-800"
-                        }`}
-                      >
-                        {PAYMENT_STATUS_LABELS[order.paymentStatus] ??
-                          order.paymentStatus}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <OrderStatusSelect orderId={order.id} status={order.status} />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="mt-4">
+            <OrdersTable orders={orderDtos} />
           </div>
         )}
         <p className="mt-2 text-xs text-gray-400">

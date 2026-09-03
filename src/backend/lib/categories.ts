@@ -1,5 +1,5 @@
 // Catalogue des catégories — SOURCE DE VÉRITÉ (partagée client + serveur).
-// Structure à 2 niveaux : Univers (depth 0) → Sous-catégorie (depth 1).
+// Structure : Univers (depth 0) → Sous-catégorie (depth 1) → Sous-thème (depth 2, optionnel).
 // Le menu, les pages /categories/[slug], le dashboard et l'export se
 // construisent TOUS automatiquement à partir de cette liste.
 import type { Category } from "../db/schema";
@@ -42,6 +42,11 @@ export const CATEGORY_LIST: Category[] = [
   row(30, "ventilateurs-climatisation", "Ventilateurs & Climatisation", 1, "🌀", 12, 5),
   row(31, "maison-cuisine", "Maison & Cuisine", 1, "🍳", 12, 6),
   row(32, "autres-electronique", "Autres", 1, "🗂️", 12, 7),
+  // ▼ Sous-thèmes regroupés dans « Autres » (après Maison & Cuisine)
+  row(35, "articles-sport", "Articles de Sport", 2, "🏋️", 32, 1),
+  row(36, "sacs-a-dos-voyage", "Sacs à dos & Voyage", 2, "🎒", 32, 2),
+  row(37, "produit-bebe", "Produit pour bébé", 2, "🍼", 32, 3),
+  row(38, "produit-voiture", "Produit pour voiture", 2, "🚗", 32, 4),
 
   // ── Univers 4 : Quincaillerie ────────────────────────────────────────
   // Pas de sous-catégories : les produits se rangent directement ici.

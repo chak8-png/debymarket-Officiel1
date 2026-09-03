@@ -35,6 +35,29 @@ try {
   Write-Host "Projet : $root"
   Write-Host ""
 
+  # 0. Verifier que Git est present (moteur invisible du script)
+  if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
+    Write-Host "Git n'est pas installe sur ce PC. Installation automatique..." -ForegroundColor Yellow
+    $installed = $false
+    try {
+      winget install --id Git.Git -e --source winget --accept-package-agreements --accept-source-agreements
+      $installed = $true
+    } catch { }
+    Write-Host ""
+    if ($installed) {
+      Write-Host "Git est installe. Fermez cette fenetre et RELANCEZ maj.ps1." -ForegroundColor Green
+    } else {
+      Write-Host "ERREUR : installation automatique impossible." -ForegroundColor Red
+      Write-Host "Installez Git manuellement : https://git-scm.com/download/win (options par defaut), puis relancez maj.ps1."
+    }
+    Read-Host "Appuie sur Entree pour fermer"
+    exit 1
+  }
+
+  # Identite Git de secours (au cas ou elle ne serait pas configuree)
+  if (-not (git config user.name)) { git config user.name "Debymarket" | Out-Null }
+  if (-not (git config user.email)) { git config user.email "dev@debymarket.ci" | Out-Null }
+
   # 1. Trouver le zip le plus recent (Telechargements puis Bureau)
   $zip = $null
   foreach ($dir in @("$env:USERPROFILE\Downloads", "$env:USERPROFILE\Desktop")) {
