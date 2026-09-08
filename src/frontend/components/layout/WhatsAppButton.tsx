@@ -1,4 +1,7 @@
+"use client";
+
 import { WHATSAPP_URL } from "@/backend/lib/constants";
+import { fbqTrack } from "@/frontend/components/analytics/track";
 
 /** Bouton WhatsApp flottant (commande directe par chat). */
 export default function WhatsAppButton() {
@@ -8,6 +11,7 @@ export default function WhatsAppButton() {
       target="_blank"
       rel="noopener noreferrer"
       aria-label="Commander sur WhatsApp"
+      onClick={() => fbqTrack("Contact")}
       className="fixed bottom-5 right-5 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-[#25D366] text-white shadow-lg transition hover:scale-110 hover:shadow-2xl"
     >
       <svg viewBox="0 0 24 24" className="h-7 w-7 fill-current" aria-hidden="true">

@@ -11,6 +11,7 @@ import { DELIVERY_TIME, DELIVERY_AREA } from "@/backend/lib/constants";
 import Gallery from "@/frontend/components/product/Gallery";
 import PurchasePanel from "@/frontend/components/product/PurchasePanel";
 import ProductCard from "@/frontend/components/product/ProductCard";
+import PixelViewContent from "@/frontend/components/analytics/PixelViewContent";
 import Stars from "@/frontend/components/ui/Stars";
 import {
   displayImages,
@@ -37,6 +38,9 @@ export default async function ProductDetailView({
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8">
+      {/* Meta Pixel : « ViewContent » (vue du produit) */}
+      <PixelViewContent id={product.id} name={product.name} price={product.price} />
+
       {/* Fil d'Ariane */}
       <nav className="mb-6 flex flex-wrap items-center gap-1.5 text-sm text-gray-500">
         <Link href="/" className="hover:text-brand-600">

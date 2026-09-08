@@ -7,6 +7,9 @@
 #      > "Executer avec PowerShell"
 #      (si Windows refuse : ouvrir PowerShell dans ce dossier
 #       et taper : powershell -ExecutionPolicy Bypass -File .\maj.ps1)
+#   >>> SI WINDOWS AFFICHE "Controle intelligent des applications" :
+#       clic droit sur maj.ps1 > Proprietes > cocher "Debloquer"
+#       (tout en bas de l'onglet General) > OK, puis relancer. <<<
 # Le script fait TOUT tout seul : extraction, copie PROPRE du
 # contenu a la racine (jamais de doublon), envoi sur GitHub.
 # ============================================================
@@ -29,6 +32,8 @@ function Stop-WithMsg($msg) {
 
 try {
   Set-Location $root
+  # Journal de bord : tout ce qui s'affiche est aussi ecrit dans maj-log.txt
+  try { Start-Transcript -Path (Join-Path $root "maj-log.txt") -Force | Out-Null } catch { }
   Write-Host "==============================================" -ForegroundColor Cyan
   Write-Host "  Debymarket - Mise a jour automatique" -ForegroundColor Cyan
   Write-Host "==============================================" -ForegroundColor Cyan
@@ -111,8 +116,10 @@ try {
   # 7. Envoi sur GitHub -> deploiement Render automatique
   git add -A
   git commit -m ("maj du " + (Get-Date -Format "dd/MM/yyyy HH:mm")) | Out-Null
-  git push
-  if ($LASTEXITCODE -ne 0) { Stop-WithMsg "Le push GitHub a echoue. Verifie ta connexion internet et reessaie." }
+  $pushOut = git push 2>&1 | Out-String
+  if ($LASTEXITCODE -ne 0) {
+    Stop-WithMsg "Le push GitHub a echoue. DETAIL TECHNIQUE : $pushOut"
+  }
 
   Write-Host "4/4 - Code envoye sur GitHub" -ForegroundColor Green
   Write-Host ""
@@ -120,6 +127,7 @@ try {
   Write-Host "  TERMINE ! Render deploie tout seul (~3 min)." -ForegroundColor Green
   Write-Host "  Verifie ensuite : https://debymarket.com" -ForegroundColor Green
   Write-Host "==============================================" -ForegroundColor Green
+  try { Stop-Transcript | Out-Null } catch { }
   Read-Host "Appuie sur Entree pour fermer"
 } catch {
   Stop-WithMsg $_.Exception.Message

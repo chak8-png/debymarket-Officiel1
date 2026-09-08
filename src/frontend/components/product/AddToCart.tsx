@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useCart, type AddableProduct } from "../cart/CartProvider";
-import { trackEvent } from "../analytics/track";
+import { trackEvent, fbqTrack } from "../analytics/track";
 
 export default function AddToCart({
   product,
@@ -23,6 +23,14 @@ export default function AddToCart({
   const add = (qty: number) => {
     addItem(product, qty, color, size);
     trackEvent("add_to_cart", { productId: product.id, quantity: qty });
+    // Meta Pixel : ajout au panier (mesure + reciblage publicitaire)
+    fbqTrack("AddToCart", {
+      content_ids: [product.id],
+      content_name: product.name,
+      content_type: "product",
+      value: product.price * qty,
+      currency: "XOF",
+    });
     openCart();
   };
 

@@ -21,6 +21,9 @@ function NavItems({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
   return (
     <nav className="flex flex-col gap-1">
+      <p className="px-3.5 pb-1 text-[10px] font-bold uppercase tracking-widest text-merchant-sub/70">
+        Menu
+      </p>
       {MENU.map((item) => {
         const isActive = item.href === "/admin/images"
           ? pathname === "/admin/images"
@@ -103,6 +106,12 @@ export default function AdminShell({
 }) {
   const [open, setOpen] = useState(false);
   const close = () => setOpen(false);
+  // Date du jour dans la barre haute (ex : « mar. 9 sept. ») — repère pro
+  const today = new Date().toLocaleDateString("fr-FR", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+  });
 
   return (
     <div className="min-h-screen bg-merchant-bg text-merchant-text">
@@ -124,6 +133,12 @@ export default function AdminShell({
             DebyMarket <span className="hidden sm:inline">Merchant</span>
           </Link>
           <div className="ml-auto flex items-center gap-2">
+            <span
+              suppressHydrationWarning
+              className="hidden rounded-xl bg-merchant-low px-3 py-2 text-xs font-semibold capitalize text-merchant-sub md:inline-flex"
+            >
+              📅 {today}
+            </span>
             <Link
               href="/"
               className="inline-flex items-center gap-1.5 rounded-xl border border-merchant-border/70 bg-white px-3 py-2 text-xs font-bold text-merchant-text shadow-sm transition hover:border-merchant-primary hover:text-merchant-primary sm:text-sm"
@@ -131,8 +146,15 @@ export default function AdminShell({
               🛒 <span className="hidden sm:inline">Voir la boutique</span>
               <span className="sm:hidden">Boutique</span>
             </Link>
-            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-merchant-container text-sm" title="Compte marchand">
+            <span
+              className="relative flex h-9 w-9 items-center justify-center rounded-full bg-merchant-container text-sm ring-2 ring-white"
+              title="Compte marchand"
+            >
               👤
+              <span
+                aria-hidden
+                className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-white bg-merchant-green"
+              />
             </span>
           </div>
         </div>

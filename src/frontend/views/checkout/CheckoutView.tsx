@@ -1,17 +1,33 @@
 "use client";
 
 import Link from "next/link";
-import { useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useCart, itemKey } from "@/frontend/components/cart/CartProvider";
 import { formatXOF } from "@/backend/lib/format";
 import { DELIVERY_TIME, DELIVERY_AREA } from "@/backend/lib/constants";
-import { trackEvent } from "@/frontend/components/analytics/track";
+import {
+  trackEvent,
+  fbqTrack,
+} from "@/frontend/components/analytics/track";
 
 type Confirmation = { reference: string; total: number } | null;
 
 export default function CheckoutView() {
   const { items, subtotal, deliveryFee, total, setQuantity, removeItem, clear } =
     useCart();
+
+  // Meta Pixel : « InitiateCheckout » dès que le panier est connu (1 seule fois)
+  const checkoutTracked = useRef(false);
+  useEffect(() => {
+    if (checkoutTracked.current || items.length === 0) return;
+    checkoutTracked.current = true;
+    fbqTrack("InitiateCheckout", {
+      content_ids: items.map((i) => i.id),
+      num_items: items.reduce((n, i) => n + i.quantity, 0),
+      value: total,
+      currency: "XOF",
+    });
+  }, [items, total]);
 
   const [customerName, setCustomerName] = useState("");
   const [phone, setPhone] = useState("");
@@ -49,6 +65,14 @@ export default function CheckoutView() {
         return;
       }
       trackEvent("purchase", { reference: data.reference, total: data.total });
+      // Meta Pixel : « Purchase » (montant + référence, pour le ROAS des pubs)
+      fbqTrack("Purchase", {
+        content_ids: items.map((i) => i.id),
+        contents: items.map((i) => ({ id: i.id, quantity: i.quantity })),
+        value: data.total,
+        currency: "XOF",
+        order_id: data.reference,
+      });
       setConfirmation({ reference: data.reference, total: data.total });
       clear();
     } catch {

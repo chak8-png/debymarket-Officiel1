@@ -142,15 +142,15 @@ export default function OrdersTable({ orders }: { orders: AdminOrderDTO[] }) {
       <div className="overflow-x-auto rounded-2xl border border-merchant-border/40 bg-white shadow-sm">
         <table className="w-full min-w-[760px] text-sm">
           <thead>
-            <tr className="border-b bg-gray-50 text-left text-xs uppercase text-gray-500">
-              <th className="px-4 py-3">Référence</th>
-              <th className="px-4 py-3">Date</th>
-              <th className="px-4 py-3">Client</th>
-              <th className="px-4 py-3">Livraison</th>
-              <th className="px-4 py-3">Articles</th>
-              <th className="px-4 py-3 text-right">Total</th>
-              <th className="px-4 py-3">Paiement</th>
-              <th className="px-4 py-3">Statut</th>
+            <tr className="border-b border-merchant-border/40 bg-merchant-low/60 text-left">
+              <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-merchant-sub">Référence</th>
+              <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-merchant-sub">Date</th>
+              <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-merchant-sub">Client</th>
+              <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-merchant-sub">Livraison</th>
+              <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-merchant-sub">Articles</th>
+              <th className="px-4 py-3 text-right text-[11px] font-bold uppercase tracking-wider text-merchant-sub">Total</th>
+              <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-merchant-sub">Paiement</th>
+              <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-merchant-sub">Statut</th>
             </tr>
           </thead>
           <tbody className="divide-y">
@@ -193,17 +193,25 @@ export default function OrdersTable({ orders }: { orders: AdminOrderDTO[] }) {
                     </p>
                   ))}
                 </td>
-                <td className="whitespace-nowrap px-4 py-3 text-right font-bold text-brand-600">
+                <td className="whitespace-nowrap px-4 py-3 text-right font-bold text-merchant-text tabular-nums">
                   {formatXOF(order.total)}
                 </td>
                 <td className="px-4 py-3 text-xs">
                   <span
-                    className={`rounded-full px-2 py-0.5 font-semibold ${
+                    className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-1 text-[11px] font-bold ring-1 ${
                       order.paymentStatus === "paid"
-                        ? "bg-green-100 text-green-800"
-                        : "bg-amber-100 text-amber-800"
+                        ? "bg-green-50 text-green-700 ring-green-200"
+                        : "bg-amber-50 text-amber-700 ring-amber-200"
                     }`}
                   >
+                    <span
+                      aria-hidden
+                      className={`h-1.5 w-1.5 rounded-full ${
+                        order.paymentStatus === "paid"
+                          ? "bg-green-500"
+                          : "bg-amber-500"
+                      }`}
+                    />
                     {PAYMENT_STATUS_LABELS[order.paymentStatus] ??
                       order.paymentStatus}
                   </span>
@@ -248,12 +256,20 @@ export default function OrdersTable({ orders }: { orders: AdminOrderDTO[] }) {
               </div>
               <div className="flex items-center gap-2">
                 <span
-                  className={`rounded-full px-2.5 py-1 text-xs font-bold ${
+                  className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-bold ring-1 ${
                     selected.paymentStatus === "paid"
-                      ? "bg-green-100 text-green-800"
-                      : "bg-amber-100 text-amber-800"
+                      ? "bg-green-50 text-green-700 ring-green-200"
+                      : "bg-amber-50 text-amber-700 ring-amber-200"
                   }`}
                 >
+                  <span
+                    aria-hidden
+                    className={`h-1.5 w-1.5 rounded-full ${
+                      selected.paymentStatus === "paid"
+                        ? "bg-green-500"
+                        : "bg-amber-500"
+                    }`}
+                  />
                   {PAYMENT_STATUS_LABELS[selected.paymentStatus] ??
                     selected.paymentStatus}
                 </span>

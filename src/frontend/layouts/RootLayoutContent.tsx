@@ -9,6 +9,7 @@ import Footer from "@/frontend/components/layout/Footer";
 import WhatsAppButton from "@/frontend/components/layout/WhatsAppButton";
 import AppProviders from "@/frontend/providers/AppProviders";
 import Hotjar from "@/frontend/components/analytics/Hotjar";
+import MetaPixel from "@/frontend/components/analytics/MetaPixel";
 
 // Polices du design : Fraunces (titres) + Inter (texte)
 const sans = Inter({
@@ -34,6 +35,7 @@ export default function RootLayoutContent({ children }: { children: ReactNode })
           <Footer />
           <WhatsAppButton />
           <Hotjar />
+          <MetaPixel />
         </AppProviders>
       </body>
     </html>
