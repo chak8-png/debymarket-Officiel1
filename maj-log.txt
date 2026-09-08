@@ -1,12 +1,12 @@
 ﻿**********************
 Début de la transcription Windows PowerShell
-Heure de début : 20260908014428
+Heure de début : 20260908015142
 Nom d'utilisateur : LAVIE-PC\LAVIE
 Utilisateur runAs :  LAVIE-PC\LAVIE
 Nom de la configuration : 
 Ordinateur : LAVIE-PC (Microsoft Windows NT 10.0.26200.0)
 Application hôte : C:\WINDOWS\System32\WindowsPowerShell\v1.0\powershell.exe
-ID de processus : 680
+ID de processus : 10320
 PSVersion: 5.1.26100.8115
 PSEdition: Desktop
 PSCompatibleVersions: 1.0, 2.0, 3.0, 4.0, 5.0, 5.1.26100.8115
@@ -21,8 +21,25 @@ SerializationVersion: 1.1.0.1
 ==============================================
 Projet : C:\Users\PC MARKET\Downloads\debymarket-officiel1
 
-Zip trouve : C:\Users\PC MARKET\Downloads\debymarket-projet (18).zip (4.2 Mo)
+Zip trouve : C:\Users\PC MARKET\Downloads\debymarket-projet (15).zip (4.2 Mo)
 
-PS>Erreur de terminaison (Remove-Item) : « L’exécution de la commande s’est arrêtée, car la variable de préférence « ErrorActionPreference » ou le paramètre courant a la valeur Stop : Impossible de supprimer l'élément C:\Users\PC MARKET\Downloads\debymarket-officiel1\maj-log.txt : Le processus ne peut pas accéder au fichier 'C:\Users\PC MARKET\Downloads\debymarket-officiel1\maj-log.txt', car il est en cours d'utilisation par un autre processus. »
+1/4 - Ancien contenu efface (historique .git conserve)
+2/4 - Zip extrait
+3/4 - Nouvelle version en place (a la racine, sans sous-dossier)
+warning: in the working copy of 'src/frontend/views/public/ProductDetailView.tsx', LF will be replaced by CRLF the next
+time Git touches it
+warning: in the working copy of 'src/frontend/views/public/ProductsView.tsx', LF will be replaced by CRLF the next time
+Git touches it
+warning: in the working copy of 'src/middleware.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'tailwind.config.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'tsconfig.json', LF will be replaced by CRLF the next time Git touches it
+PS>Erreur de terminaison (git.exe) : « L’exécution de la commande s’est arrêtée, car la variable de préférence « ErrorActionPreference » ou le paramètre courant a la valeur Stop : git: 'credential-manager-core' is not a git command. See 'git --help'. »
 
-ERREUR : Le processus ne peut pas accéder au fichier 'C:\Users\PC MARKET\Downloads\debymarket-officiel1\maj-log.txt', car il est en cours d'utilisation par un autre processus.
+ERREUR : git: 'credential-manager-core' is not a git command. See 'git --help'.
+
+AIDE : fais une PHOTO de cet ecran ou envoie le fichier 'maj-log.txt'
+      (il est dans ce dossier) a ton developpeur.
+**********************
+Fin de la transcription Windows PowerShell
+Heure de fin : 20260908015154
+**********************
