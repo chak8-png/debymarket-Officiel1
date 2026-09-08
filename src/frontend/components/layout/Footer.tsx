@@ -125,11 +125,32 @@ export default function Footer() {
 
       <div className="border-t border-white/10 px-4 py-6 text-center text-xs text-ink-500">
         <p className="font-semibold text-ink-400">
-          © 2026 Debymarket — Tous droits réservés.
+          © 2026{" "}
+          <a
+            href="https://wa.me/2250574958710"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="transition hover:text-brand-400"
+          >
+            Lavie Dev
+          </a>{" "}
+          — Tous droits réservés.
         </p>
         <p className="mt-1">
           Abidjan, Côte d&apos;Ivoire · Livraison en {DELIVERY_TIME} · Paiement
           à la livraison
+        </p>
+        <p className="mt-2 text-ink-500">
+          Conçu &amp; développé par{" "}
+          <a
+            href="https://wa.me/2250574958710?text=Bonjour%20Lavie%20Dev%20!%20Je%20vous%20contacte%20depuis%20le%20site%20Debymarket."
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-semibold text-ink-300 underline decoration-ink-600 underline-offset-2 transition hover:text-brand-400"
+          >
+            Lavie Dev
+          </a>{" "}
+          · 💬 +225 05 74 95 87 10
         </p>
       </div>
     </footer>

@@ -22,10 +22,18 @@ if (-not $root -or -not (Test-Path (Join-Path $root ".git"))) {
   $root = "C:\Users\PC MARKET\Downloads\debymarket-officiel1"
 }
 $me = Join-Path $root "maj.ps1"
+# Journal de bord : ecrit d'abord en TEMP puis depose dans le dossier a la fin,
+# sinon l'etape de nettoyage se heurte a son propre fichier verrouille.
+$script:logTmp = Join-Path $env:TEMP "debymarket-maj-log.txt"
 
 function Stop-WithMsg($msg) {
   Write-Host ""
   Write-Host "ERREUR : $msg" -ForegroundColor Red
+  Write-Host ""
+  Write-Host "AIDE : fais une PHOTO de cet ecran ou envoie le fichier 'maj-log.txt'" -ForegroundColor Yellow
+  Write-Host "      (il est dans ce dossier) a ton developpeur." -ForegroundColor Yellow
+  try { Stop-Transcript | Out-Null } catch { }
+  try { Copy-Item $script:logTmp (Join-Path $root "maj-log.txt") -Force } catch { }
   Read-Host "Appuie sur Entree pour fermer"
   exit 1
 }
@@ -33,7 +41,7 @@ function Stop-WithMsg($msg) {
 try {
   Set-Location $root
   # Journal de bord : tout ce qui s'affiche est aussi ecrit dans maj-log.txt
-  try { Start-Transcript -Path (Join-Path $root "maj-log.txt") -Force | Out-Null } catch { }
+  try { Start-Transcript -Path $script:logTmp -Force | Out-Null } catch { }
   Write-Host "==============================================" -ForegroundColor Cyan
   Write-Host "  Debymarket - Mise a jour automatique" -ForegroundColor Cyan
   Write-Host "==============================================" -ForegroundColor Cyan
@@ -89,9 +97,9 @@ try {
     Write-Host "Reglages locaux (.env.local) sauvegardes"
   }
 
-  # 3. Vider le dossier SAUF .git et ce script (anti-doublon garanti)
+  # 3. Vider le dossier SAUF .git, ce script et le journal (anti-doublon garanti)
   Get-ChildItem $root -Force |
-    Where-Object { $_.Name -ne ".git" -and $_.Name -ne "maj.ps1" } |
+    Where-Object { $_.Name -ne ".git" -and $_.Name -ne "maj.ps1" -and $_.Name -ne "maj-log.txt" } |
     Remove-Item -Recurse -Force
   Write-Host "1/4 - Ancien contenu efface (historique .git conserve)" -ForegroundColor Green
 
@@ -128,6 +136,7 @@ try {
   Write-Host "  Verifie ensuite : https://debymarket.com" -ForegroundColor Green
   Write-Host "==============================================" -ForegroundColor Green
   try { Stop-Transcript | Out-Null } catch { }
+  try { Copy-Item $script:logTmp (Join-Path $root "maj-log.txt") -Force } catch { }
   Read-Host "Appuie sur Entree pour fermer"
 } catch {
   Stop-WithMsg $_.Exception.Message
