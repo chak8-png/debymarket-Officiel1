@@ -1,12 +1,12 @@
 ﻿**********************
 Début de la transcription Windows PowerShell
-Heure de début : 20260908020140
+Heure de début : 20260908021133
 Nom d'utilisateur : LAVIE-PC\LAVIE
 Utilisateur runAs :  LAVIE-PC\LAVIE
 Nom de la configuration : 
 Ordinateur : LAVIE-PC (Microsoft Windows NT 10.0.26200.0)
 Application hôte : C:\WINDOWS\System32\WindowsPowerShell\v1.0\powershell.exe
-ID de processus : 14924
+ID de processus : 12264
 PSVersion: 5.1.26100.8115
 PSEdition: Desktop
 PSCompatibleVersions: 1.0, 2.0, 3.0, 4.0, 5.0, 5.1.26100.8115
@@ -35,5 +35,5 @@ AIDE : fais une PHOTO de cet ecran ou envoie le fichier 'maj-log.txt'
       (il est dans ce dossier) a ton developpeur.
 **********************
 Fin de la transcription Windows PowerShell
-Heure de fin : 20260908020206
+Heure de fin : 20260908021221
 **********************
