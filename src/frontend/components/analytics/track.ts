@@ -6,7 +6,7 @@
 // NEXT_PUBLIC_META_PIXEL_ID (réglage Render) ; sinon valeur collée ci-dessous.
 // (Un ID de Pixel est PUBLIC par nature : visible dans le code de la page,
 //  ce n'est pas un secret comme un mot de passe.)
-const HARDCODED_PIXEL_ID = ""; // ← ex. "1234567890123456"
+const HARDCODED_PIXEL_ID = "3079190972439220"; // Pixel Debymarket (actif)
 
 const rawPixelId = (
   process.env.NEXT_PUBLIC_META_PIXEL_ID ?? HARDCODED_PIXEL_ID

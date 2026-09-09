@@ -71,6 +71,22 @@ try {
   if (-not (git config user.name)) { git config user.name "Debymarket" | Out-Null }
   if (-not (git config user.email)) { git config user.email "dev@debymarket.ci" | Out-Null }
 
+  # Reparer l'assistant d'identifiants Git (manager-core = ancien nom obsolete)
+  $helper = ((git config credential.helper 2>$null) | Out-String).Trim()
+  if ($helper -match "manager-core") {
+    $null = (git credential-manager version 2>$null)
+    if ($LASTEXITCODE -ne 0) {
+      Write-Host "Assistant d'identifiants Git obsolete : mise a jour de Git..." -ForegroundColor Yellow
+      try { winget install --id Git.Git -e --source winget --accept-package-agreements --accept-source-agreements } catch { }
+      $null = (git credential-manager version 2>$null)
+    }
+    if ($LASTEXITCODE -eq 0) {
+      git config --global --unset-all credential.helper 2>$null | Out-Null
+      git config --global credential.helper manager | Out-Null
+      Write-Host "Identifiants Git repares (manager-core -> manager)." -ForegroundColor Yellow
+    }
+  }
+
   # 1. Trouver le zip le plus recent (Telechargements puis Bureau)
   $zip = $null
   foreach ($dir in @("$env:USERPROFILE\Downloads", "$env:USERPROFILE\Desktop")) {
@@ -122,10 +138,27 @@ try {
   Remove-Item $tmp -Recurse -Force -ErrorAction SilentlyContinue
 
   # 7. Envoi sur GitHub -> deploiement Render automatique
+  # ATTENTION : git ecrit meme ses messages de SUCCES ("To https://...")
+  # sur le canal "rouge". Sous PowerShell 5.1 avec ErrorActionPreference=Stop,
+  # ce bavardage normal serait transforme en fausse erreur -> on assouplit
+  # temporairement, et on juge seulement le code de sortie (0 = succes).
+  $prevEAP = $ErrorActionPreference
+  $ErrorActionPreference = "Continue"
   git add -A
   git commit -m ("maj du " + (Get-Date -Format "dd/MM/yyyy HH:mm")) | Out-Null
   $pushOut = git push 2>&1 | Out-String
-  if ($LASTEXITCODE -ne 0) {
+  $pushCode = $LASTEXITCODE
+  if ($pushCode -ne 0) {
+    # identifiant GitHub peut-etre perime : reset + nouvelle tentative
+    Write-Host ""
+    Write-Host "Premier envoi refuse : reinitialisation de l'identifiant GitHub..." -ForegroundColor Yellow
+    "protocol=https`nhost=github.com`n" | git credential-manager erase 2>$null | Out-Null
+    Write-Host ">>> Si une page GitHub s'ouvre dans le navigateur : connectez-vous (compte GitHub du projet). <<<" -ForegroundColor Yellow
+    $pushOut = git push 2>&1 | Out-String
+    $pushCode = $LASTEXITCODE
+  }
+  $ErrorActionPreference = $prevEAP
+  if ($pushCode -ne 0) {
     Stop-WithMsg "Le push GitHub a echoue. DETAIL TECHNIQUE : $pushOut"
   }
 
