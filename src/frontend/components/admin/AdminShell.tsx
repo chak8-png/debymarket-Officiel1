@@ -15,6 +15,7 @@ const MENU = [
   { href: "/admin#commandes", icon: "🧾", label: "Commandes" },
   { href: "/admin#stock", icon: "🛍️", label: "Stock produits" },
   { href: "/admin/images", icon: "🖼️", label: "Images de l'accueil" },
+  { href: "/admin/reglages", icon: "⚙️", label: "Réglages" },
 ];
 
 function NavItems({ onNavigate }: { onNavigate?: () => void }) {
@@ -25,9 +26,7 @@ function NavItems({ onNavigate }: { onNavigate?: () => void }) {
         Menu
       </p>
       {MENU.map((item) => {
-        const isActive = item.href === "/admin/images"
-          ? pathname === "/admin/images"
-          : pathname === "/admin" && !item.href.includes("#");
+        const isActive = !item.href.includes("#") && pathname === item.href;
         return (
           <Link
             key={item.label}

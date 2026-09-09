@@ -37,6 +37,11 @@ export const ORDER_STATUSES = [
 
 export type OrderStatus = (typeof ORDER_STATUSES)[number];
 
+/** Pixel Meta (publicités Facebook/Instagram) — ID par défaut du site.
+ *  Remplaçable EN DIRECT depuis le dashboard admin → Réglages (clé « meta.pixel.id »),
+ *  sans redéploiement. C'est un identifiant public (visible dans les pages), pas un secret. */
+export const DEFAULT_META_PIXEL_ID = "3079190972439220";
+
 export const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
   pending: "En attente",
   confirmed: "Confirmée",

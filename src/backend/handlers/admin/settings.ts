@@ -5,6 +5,7 @@
 import { NextResponse } from "next/server";
 import {
   HOME_IMAGE_KEYS,
+  META_PIXEL_KEY,
   getSettings,
   isAllowedSettingKey,
   setSetting,
@@ -27,8 +28,18 @@ function cleanImageValue(v: unknown): string | null | false {
   return false;
 }
 
+/** Valide une valeur Pixel : "" / null = retour au défaut · "off" · 6-20 chiffres. */
+function cleanPixelValue(v: unknown): string | null | false {
+  if (v === null || v === undefined || v === "") return null; // reset → défaut
+  if (typeof v !== "string") return false;
+  const s = v.trim();
+  if (s === "off") return "off";
+  if (/^\d{6,20}$/.test(s)) return s;
+  return false;
+}
+
 export async function GET() {
-  const overrides = await getSettings(HOME_IMAGE_KEYS);
+  const overrides = await getSettings([...HOME_IMAGE_KEYS, META_PIXEL_KEY]);
   return NextResponse.json({ ok: true, settings: overrides });
 }
 
@@ -54,12 +65,18 @@ export async function POST(req: Request) {
     );
   }
 
-  const value = cleanImageValue(body?.value);
+  const value =
+    key === META_PIXEL_KEY
+      ? cleanPixelValue(body?.value)
+      : cleanImageValue(body?.value);
   if (value === false) {
     return NextResponse.json(
       {
         ok: false,
-        error: "Image invalide — formats acceptés : JPEG/PNG/WebP, ou lien https.",
+        error:
+          key === META_PIXEL_KEY
+            ? 'ID Pixel invalide — 6 à 20 chiffres, ou "off" pour désactiver.'
+            : "Image invalide — formats acceptés : JPEG/PNG/WebP, ou lien https.",
       },
       { status: 400 }
     );

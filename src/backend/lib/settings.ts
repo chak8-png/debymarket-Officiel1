@@ -22,8 +22,17 @@ export const HOME_IMAGE_KEYS = [
 
 export type HomeImageKey = (typeof HOME_IMAGE_KEYS)[number];
 
-export function isAllowedSettingKey(key: string): key is HomeImageKey {
-  return (HOME_IMAGE_KEYS as readonly string[]).includes(key);
+/** Clé du Pixel Meta — modifiable depuis le dashboard admin → Réglages.
+ *  Valeurs : chiffres = ID actif · "off" = désactivé · absent = défaut du code. */
+export const META_PIXEL_KEY = "meta.pixel.id";
+
+export type SettingKey = HomeImageKey | typeof META_PIXEL_KEY;
+
+export function isAllowedSettingKey(key: string): key is SettingKey {
+  return (
+    key === META_PIXEL_KEY ||
+    (HOME_IMAGE_KEYS as readonly string[]).includes(key)
+  );
 }
 
 /**
